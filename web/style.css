@@ -185,3 +185,6 @@ dialog > p, .help-step p { color: #697383; }
   .library-items { border-right: 0; border-bottom: 1px solid var(--line); max-height: 240px; }
   .case-chip { max-width: 100%; }
 }
+.entries-table .page-texts summary { cursor: pointer; color: #6a52c0; font-size: 12px; }
+.entries-table .page-text { margin: 8px 0; padding: 8px 10px; background: #fafbfd; border: 1px solid #e8eaf0; border-radius: 6px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; }
+.entries-table .page-text strong { display: block; font-size: 11px; color: #6d7486; margin-bottom: 4px; }

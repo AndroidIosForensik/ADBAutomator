@@ -712,6 +712,13 @@ function backupDetail(record) {
     const row = el('tr');
     row.append(el('td', '', String(entry.index)), thumb, el('td', 'entry-text', entry.text), status, pagesCell);
     table.append(row);
+    const texts = entry.pages.filter(page => 'text' in page);
+    if (texts.length) {
+      const details = el('details', 'page-texts'), textRow = el('tr'), cell = el('td');
+      details.append(el('summary', '', `Text der ${texts.length === 1 ? 'Seite' : `${texts.length} Seiten`} anzeigen`));
+      texts.forEach((page, index) => { const block = el('div', 'page-text'); block.append(el('strong', '', `Seite ${index + 1}`), el('div', '', page.text || '(kein Text auf dieser Seite)')); details.append(block); });
+      cell.colSpan = 4; cell.append(details); textRow.append(el('td'), cell); table.append(textRow);
+    }
   }
   if (!record.entries.length) { const row = el('tr'), cell = el('td', '', 'Noch keine Einträge.'); cell.colSpan = 5; row.append(cell); table.append(row); }
   parts.push(table);

@@ -62,12 +62,19 @@ class EvidenceWriter:
         self.save()
         return entry
 
-    def add_page(self, entry, data, mime):
+    def add_page(self, entry, data, mime, text=None):
         folder = self.folder / entry["folder"]
         folder.mkdir(exist_ok=True)
-        name = f"E{entry['index']:04d}_S{len(entry['pages']) + 1:04d}.{'svg' if mime == 'image/svg+xml' else 'png'}"
+        stem = f"E{entry['index']:04d}_S{len(entry['pages']) + 1:04d}"
+        name = f"{stem}.{'svg' if mime == 'image/svg+xml' else 'png'}"
         (folder / name).write_bytes(data)
-        entry["pages"].append({"file": f"{entry['folder']}/{name}", "sha256": hashlib.sha256(data).hexdigest(), "bytes": len(data), "time": now_iso()})
+        page = {"file": f"{entry['folder']}/{name}", "sha256": hashlib.sha256(data).hexdigest(), "bytes": len(data), "time": now_iso()}
+        if text is not None:
+            # The screen's text as Android reports it, next to the screenshot.
+            encoded = text.encode("utf-8")
+            (folder / f"{stem}.txt").write_bytes(encoded)
+            page.update(text=text, text_file=f"{entry['folder']}/{stem}.txt", text_sha256=hashlib.sha256(encoded).hexdigest())
+        entry["pages"].append(page)
         self.pages_since_save += 1
         if self.pages_since_save >= 10:
             self.save()
@@ -136,7 +143,14 @@ def report_html(record):
         status = f'<span class="status {"ok" if entry["status"] == "gesichert" else "problem"}">{e(entry["status"])}</span>'
         rows.append(f'<tr><td>{entry["index"]}</td><td>{thumb}</td><td class="text">{e(entry["text"])}</td><td>{status}<div class="note">{e(entry["note"])}</div></td>'
                     f'<td>{e(entry["started"])}<br>{e(entry["finished"] or "")}</td><td class="pages">{len(entry["pages"])}<div>{links}</div></td></tr>')
-    hashes = "".join(f'<tr><td><a href="{url(page["file"])}">{e(page["file"])}</a></td><td class="hash">{e(page["sha256"])}</td><td>{e(page["time"])}</td></tr>' for entry in entries for page in entry["pages"])
+        texts = "".join(f'<div class="page"><div class="page-head">Seite {number} · <a href="{url(page["file"])}">Screenshot</a> · <a href="{url(page["text_file"])}">Text</a></div>'
+                        f'<div class="text">{e(page["text"]) or "<em>kein Text auf dieser Seite</em>"}</div></div>'
+                        for number, page in enumerate(entry["pages"], 1) if "text" in page)
+        if texts:
+            rows.append(f'<tr class="page-texts"><td></td><td colspan="5"><div class="page-grid">{texts}</div></td></tr>')
+    files = [(page["file"], page["sha256"], page["time"]) for entry in entries for page in entry["pages"]]
+    files += [(page["text_file"], page["text_sha256"], page["time"]) for entry in entries for page in entry["pages"] if "text_file" in page]
+    hashes = "".join(f'<tr><td><a href="{url(name)}">{e(name)}</a></td><td class="hash">{e(digest)}</td><td>{e(time)}</td></tr>' for name, digest, time in sorted(files))
     return f"""<!doctype html>
 <html lang="de"><head><meta charset="utf-8"><title>Sicherungsbericht · {e(record['name'])}</title>
 <style>
@@ -144,7 +158,9 @@ body{{font:13px/1.5 "Segoe UI",Arial,sans-serif;color:#1f2433;margin:32px;max-wi
 .sub{{color:#5d6475;margin-bottom:20px}}table{{border-collapse:collapse;width:100%}}th,td{{border:1px solid #d9dce4;padding:6px 8px;text-align:left;vertical-align:top}}
 .meta th{{width:230px;background:#f5f6f9;font-weight:600}}.entries th{{background:#f5f6f9}}.text{{white-space:pre-wrap;overflow-wrap:anywhere;max-width:420px}}
 img{{width:110px;border:1px solid #d9dce4}}.status{{font-weight:600}}.ok{{color:#23704f}}.problem{{color:#a23b3b}}.note{{color:#5d6475;font-size:12px}}
-.pages div{{font-size:11px;margin-top:4px;word-spacing:4px}}.hash{{font-family:Consolas,monospace;font-size:11px;overflow-wrap:anywhere}}ul{{padding-left:18px}}li span{{color:#5d6475}}
+.pages div{{font-size:11px;margin-top:4px;word-spacing:4px}}.page-texts td{{background:#fafbfd;border-top:0}}
+.page-grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}}.page{{border:1px solid #e3e6ee;border-radius:6px;padding:6px 8px;background:#fff}}
+.page-head{{font-size:11px;color:#5d6475;margin-bottom:4px}}.page .text{{max-width:none;font-size:12px}}.hash{{font-family:Consolas,monospace;font-size:11px;overflow-wrap:anywhere}}ul{{padding-left:18px}}li span{{color:#5d6475}}
 @media print{{body{{margin:0}}a{{color:inherit;text-decoration:none}}tr{{break-inside:avoid}}}}
 </style></head><body>
 <h1>Sicherungsbericht: {e(record['name'])}</h1>
@@ -153,7 +169,7 @@ img{{width:110px;border:1px solid #d9dce4}}.status{{font-weight:600}}.ok{{color:
 <h2>Hinweise und Warnungen</h2><ul>{warnings}</ul>
 <h2>Einträge ({len(entries)})</h2>
 <table class="entries"><tr><th>Nr</th><th>Erste Seite</th><th>Eintrag (Text in der Liste)</th><th>Status</th><th>Beginn / Ende</th><th>Seiten</th></tr>{''.join(rows) or '<tr><td colspan="6">Keine Einträge gesichert.</td></tr>'}</table>
-<h2>Screenshots und SHA-256</h2>
+<h2>Dateien und SHA-256</h2>
 <table class="entries"><tr><th>Datei</th><th>SHA-256</th><th>Zeitpunkt</th></tr>{hashes or '<tr><td colspan="3">Keine Screenshots.</td></tr>'}</table>
 </body></html>
 """

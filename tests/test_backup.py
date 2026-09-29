@@ -13,7 +13,9 @@ from unittest.mock import patch
 
 from automator.backup import ListBackup, list_entries, overlap
 from automator.cases import CaseStore
-from automator.devices import DEMO_CHATS, DEMO_CHATS_PACKAGE, DemoDevice, focused_package
+import xml.etree.ElementTree as ET
+
+from automator.devices import DEMO_CHATS, DEMO_CHATS_PACKAGE, DemoChats, DemoDevice, focused_package
 from automator.list_items import list_item_candidates
 from automator.program import ProgramError, export_python, validate
 from automator.runner import Runner
@@ -47,7 +49,7 @@ class Recorder:
         self.entries.append(entry)
         return entry
 
-    def add_page(self, entry, data, mime):
+    def add_page(self, entry, data, mime, text=None):
         entry["pages"].append(data)
 
     def finish_entry(self, entry, status, note=""):
@@ -105,6 +107,40 @@ class EngineTests(unittest.TestCase):
                          for name, message, time, unread, _ in DEMO_CHATS}
         self.assertEqual(len(values), 15)  # the two identical "Unbekannt" rows are one value
         self.assertEqual(set(values) - complete_rows, set())
+
+    def test_overlays_while_swiping_do_not_create_extra_pages(self):
+        # Found on a real phone: WhatsApp shows a date bubble while swiping and GIFs
+        # keep playing, so a chat at its end looked "moved" and got duplicate pages.
+        original_xml, swipes = DemoChats.xml, [0]
+        def xml(chats, in_chat):
+            text = original_xml(chats, in_chat)
+            if not in_chat:
+                return text
+            root = ET.fromstring(text)
+            area = next(node for node in root.iter("node") if node.get("resource-id") == "demo:id/messages")
+            ET.SubElement(area, "node", {"class": "android.widget.TextView", "resource-id": "demo:id/date_bubble",
+                                         "text": ["Heute", "Gestern", "Montag"][swipes[0] % 3], "bounds": "[150,300][240,330]"})
+            return ET.tostring(root, encoding="unicode")
+        original_step = self.device.scroll_step
+        def step(*args, **kwargs):
+            swipes[0] += 1
+            return original_step(*args, **kwargs)
+        self.device.scroll_step = step
+        with patch.object(DemoChats, "xml", xml):
+            writer, _ = self.backup()
+        self.assertEqual([len(entry["pages"]) for entry in writer.entries], [expected_pages(chat[4]) for chat in DEMO_CHATS])
+
+    def test_every_page_keeps_its_visible_text(self):
+        writer = Recorder()
+        pages = []
+        writer.add_page = lambda entry, data, mime, text=None: (entry["pages"].append(data), pages.append((entry["text"].split("\n")[0], text)))
+        ListBackup(self.device, self.pattern, writer, checkpoint=lambda seconds=0: None, open_timeout=0, **FAST).run()
+        name, text = pages[0]
+        self.assertEqual(name, "Mama")
+        self.assertIn("12. Nachricht im Verlauf mit Mama", text)
+        self.assertIn("Nachricht", text.splitlines())  # the input field hint is on screen too
+        self.assertNotIn(":", text.splitlines()[0])  # no status bar clock
+        self.assertTrue(all(text for _, text in pages))
 
     def test_chat_pages_run_from_newest_to_oldest_message(self):
         writer, _ = self.backup()

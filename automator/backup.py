@@ -10,7 +10,7 @@ import statistics
 import time
 import xml.etree.ElementTree as ET
 
-from .list_items import list_entries
+from .list_items import item_bounds, list_entries
 from .scrolling import screen_snapshot
 
 
@@ -64,6 +64,32 @@ def continues(partial, full):
     return bool(partial_lines) and full_lines[:len(partial_lines)] == partial_lines
 
 
+def content_moved(before, after):
+    """Whether the content really scrolled between two snapshots.
+
+    Found on a real phone: WhatsApp shows a date bubble and a jump button while
+    swiping, and animated GIFs keep changing, so the screen changes although a
+    chat that is already at its end does not move. Unique texts reveal the real shift.
+    """
+    if before["fingerprint"] == after["fingerprint"]:
+        return False
+    shift = measured_shift(before, after)
+    return shift is None or abs(shift) >= 8
+
+
+def visible_text(snap):
+    """All text on the screen in hierarchy order, without the status bar."""
+    lines = []
+    for node in ET.fromstring(snap["full_xml"]).iter("node"):
+        if not item_bounds(node, snap["width"], snap["height"]):
+            continue
+        for value in (node.get("text", "").strip(), node.get("content-desc", "").strip()):
+            # A description often repeats the text right next to it.
+            if value and value not in lines[-3:]:
+                lines.append(value)
+    return "\n".join(lines)
+
+
 def screen_signature(xml):
     """Everything visible except the status bar (clock, notifications)."""
     return tuple((node.get("text", ""), node.get("content-desc", ""), node.get("resource-id", ""), node.get("class", ""), node.get("bounds", ""))
@@ -110,14 +136,14 @@ class ListBackup:
         unchanged = 0
         while unchanged < 2:
             self.checkpoint(0)
-            before = snap["fingerprint"]
+            before = snap
             self.swipes += 1
             if self.swipes > self.max_list_swipes:
                 raise BackupError("Der Anfang der Liste wurde nicht erreicht. Sicherung angehalten.")
             self.device.scroll_step("down", snap, fast=True)
             self.checkpoint(self.fling_settle)
             snap = self.list_snapshot()
-            unchanged = unchanged + 1 if snap["fingerprint"] == before else 0
+            unchanged = 0 if content_moved(before, snap) else unchanged + 1
         return snap
 
     @staticmethod
@@ -172,9 +198,9 @@ class ListBackup:
             before_scroll = snap
             moved = False
             for _ in range(2):
-                before = snap["fingerprint"]
+                before = snap
                 snap = self.scroll_list(snap, distance)
-                if snap["fingerprint"] != before:
+                if content_moved(before, snap):
                     moved = True
                     break
             if not moved:
@@ -262,9 +288,9 @@ class ListBackup:
             current = latest
         return True
 
-    def save_page(self, entry):
+    def save_page(self, entry, snap):
         data, mime = self.device.screenshot()
-        self.writer.add_page(entry, data, mime)
+        self.writer.add_page(entry, data, mime, visible_text(snap))
         self.counts["pages"] += 1
         self.status(page=len(entry["pages"]), pages=self.counts["pages"])
 
@@ -275,22 +301,22 @@ class ListBackup:
         if snap["scrollable"]:
             unchanged, swipes = 0, 0
             while unchanged < 2 and swipes < self.max_pages + 2:
-                before = snap["fingerprint"]
+                before = snap
                 self.device.scroll_step(rewind, snap, fast=True)
                 swipes += 1
                 self.checkpoint(self.fling_settle)
                 snap = self.device.scroll_snapshot()
-                unchanged = unchanged + 1 if snap["fingerprint"] == before else 0
-        self.save_page(entry)
+                unchanged = 0 if content_moved(before, snap) else unchanged + 1
+        self.save_page(entry, snap)
         if not snap["scrollable"]:
             return True
         unchanged = 0
         while True:
-            before = snap["fingerprint"]
+            before = snap
             self.device.scroll_step(forward, snap)
             self.checkpoint(self.settle)
             snap = self.device.scroll_snapshot()
-            if snap["fingerprint"] == before:
+            if not content_moved(before, snap):
                 unchanged += 1
                 if unchanged >= 2:
                     return True
@@ -298,7 +324,7 @@ class ListBackup:
             unchanged = 0
             if len(entry["pages"]) >= self.max_pages:
                 return False
-            self.save_page(entry)
+            self.save_page(entry, snap)
 
     def return_to_list(self, entry):
         for _ in range(3):
