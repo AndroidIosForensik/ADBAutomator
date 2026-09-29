@@ -1,0 +1,15 @@
+.venv/
+node_modules/
+__pycache__/
+*.pyc
+*.tmp
+outputs/
+*.log
+.pytest_cache/
+.npm-cache/
+cache/
+dist/
+
+# Case data and evidence never belong in the repository.
+data/
+Sicherungen/

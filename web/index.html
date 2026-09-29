@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Droid Studio · Automatisieren mit Bausteinen</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/style.css">
+  <script defer src="/vendor/blockly_compressed.js"></script>
+  <script defer src="/vendor/msg/de.js"></script>
+  <script defer src="/app.js"></script>
+</head>
+<body>
+<svg class="sprite" xmlns="http://www.w3.org/2000/svg"><defs>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="m8 5 11 7-11 7z"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></symbol>
+  <symbol id="i-save" viewBox="0 0 24 24"><path d="M5 3h12l4 4v14H3V3h2zm2 0v7h10V3M7 21v-7h10v7"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7V4h6l3 3h9v13H3zm0 3h18"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M10 18h4M10 5h4"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-5-5 5 5-5 5"/></symbol>
+  <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/></symbol>
+  <symbol id="i-code" viewBox="0 0 24 24"><path d="m7 6-5 6 5 6m10-12 5 6-5 6m-3-14-4 16"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></symbol>
+  <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 4 4 9l5 5M4 9h9a7 7 0 0 1 0 14"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 7V2m0 5h-5M4 17v5m0-5h5M20 7a9 9 0 0 0-16 3m0 7a9 9 0 0 0 16-3"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 5C8 2 3 3 2 4v16c3-2 7-1 10 1 3-2 7-3 10-1V4c-3-2-7-1-10 1zm0 0v16"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+  <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m8 4 8 8-8 8"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="m3 11 9-8 9 8v10H3zm6 10v-7h6v7"/></symbol>
+</defs></svg>
+<main>
+  <section class="projectbar">
+    <div class="project-title"><div><input id="projectName" aria-label="Name des Ablaufs" maxlength="80" value="Mein erster Ablauf"><div class="project-subline"><span id="saveState">Entwurf im Browser gespeichert</span><span>·</span><span id="blockCount">5 Bausteine</span></div></div>
+      <button class="case-chip" id="caseButton" title="Fall wechseln oder neu anlegen"><span class="case-label">Fall</span><strong id="caseTitle">Allgemein</strong><small id="caseExaminer"></small><span aria-hidden="true">⌄</span></button></div>
+    <div class="project-actions">
+      <details class="project-menu" id="projectMenu"><summary class="button">Projekt <span aria-hidden="true">⌄</span></summary><div class="project-menu-items">
+        <button id="newButton">Neuer Ablauf</button><button id="openButton">Datei öffnen …</button><button id="saveButton">Als Datei speichern</button>
+        <button id="exampleButton">Beispiel laden …</button><button id="helpButton">Hilfe</button>
+      </div></details>
+      <button class="button stop" id="stopButton" disabled title="Laufenden Ablauf stoppen"><svg class="icon"><use href="#i-stop"/></svg>Stopp</button><button class="button" id="stepButton" title="Vor dem ersten Befehl anhalten, danach jeden Befehl einzeln ausführen">Schrittweise</button><button class="button" id="pauseButton" hidden>Pause</button><button class="button primary" id="runButton"><svg class="icon"><use href="#i-play"/></svg>Starten</button>
+    </div>
+  </section>
+  <section class="studio">
+    <aside class="palette">
+      <div class="panel-heading"><h2>Bausteine</h2><span class="count-badge">19</span></div>
+      <label class="search"><svg class="icon"><use href="#i-search"/></svg><input id="blockSearch" placeholder="Baustein suchen …" aria-label="Baustein suchen"><kbd>/</kbd></label>
+      <nav class="categories" aria-label="Bausteinkategorien"><button class="selected" data-category="all">Alle</button><button data-category="action">Aktionen</button><button data-category="flow">Logik</button><button data-category="data">Listen</button><button data-category="variable">Variablen</button></nav>
+      <div id="variableHelp" hidden><p>„Variablenwert“ in einen Werteingang stecken. Er ersetzt dort den festen Wert.</p><button class="button" id="variableExampleButton">Variablenbeispiel laden</button></div><div id="listHelp" hidden><p>Mit „Für jeden Eintrag“ eine Liste durchlaufen.</p><button class="button" id="listExampleButton">Listenbeispiel laden</button></div>
+      <div id="paletteItems" class="palette-items"></div>
+    </aside>
+    <section class="editor">
+      <div class="editor-toolbar"><div class="tabs"><button class="active" id="blocksTab"><svg class="icon"><use href="#i-grid"/></svg>Bausteine</button><button id="codeTab"><svg class="icon"><use href="#i-code"/></svg>Python-Code</button></div><div class="editor-tools"><button class="icon-button" id="undoButton" title="Rückgängig" aria-label="Rückgängig"><svg class="icon"><use href="#i-undo"/></svg></button><button class="icon-button" id="fitButton" title="Alle Blöcke anzeigen" aria-label="Alle Blöcke anzeigen"><svg class="icon"><use href="#i-target"/></svg></button></div></div>
+      <div id="stepInfo" class="step-info" role="status" hidden></div>
+      <div class="canvas-wrap"><div id="blockly"></div><div id="codePane" hidden><div class="code-caption"><span>Aus deinen Bausteinen erzeugt</span><button class="button" id="exportButton">.py herunterladen</button></div><pre id="pythonCode"></pre></div></div>
+      <details id="variableMonitor"><summary>Variablen</summary><div id="variableValues">Noch keine Variablen gesetzt.</div></details>
+      <div class="console"><div class="console-heading"><h3>Protokoll <span id="runStatus" class="status-badge">Bereit</span></h3><span id="elapsed">Noch kein Lauf</span></div><div id="logs" class="log-lines" aria-live="polite"><div class="empty-log">Noch keine Meldungen.</div></div></div>
+    </section>
+    <aside class="device-panel">
+      <div class="panel-heading"><h2>Geräteansicht</h2><span class="live-badge" id="liveBadge"><span></span> DEMO</span></div>
+      <button class="device-selector" id="connectButton"><span class="device-icon"><svg class="icon"><use href="#i-phone"/></svg></span><span><strong id="deviceName">Android · Demo-Gerät</strong><small id="deviceDetail">Ohne Smartphone ausprobieren</small></span><svg class="icon chevron"><use href="#i-chevron"/></svg></button>
+      <div class="view-tools"><span id="viewLabel">Interaktive Vorschau</span><button id="refreshScreen" class="icon-button" title="Bild aktualisieren" aria-label="Bild aktualisieren"><svg class="icon"><use href="#i-refresh"/></svg></button></div>
+      <div class="list-device-tools"><button class="button" id="backupButton" title="Jeden Eintrag einer Liste öffnen, vollständig durchblättern und screenshotten">Liste sichern</button><button class="text-button" id="libraryButton" title="Sicherungen und Listen des aktiven Falls">Ablage</button></div>
+      <div class="phone-area"><div class="phone-frame"><div class="phone-screen" id="phoneScreen"><img id="screen" alt="Aktueller Android-Bildschirm" draggable="false"><div id="elementHighlight" hidden></div></div></div><div id="screenError" hidden></div></div>
+      <div class="android-nav"><button data-key="back" aria-label="Zurück" title="Zurück">◁</button><button data-key="home" aria-label="Startbildschirm" title="Startbildschirm">○</button><button data-key="recent" aria-label="Letzte Apps" title="Letzte Apps">□</button></div>
+      <div class="pick-section"><button class="button pick-button" id="pickButton"><svg class="icon"><use href="#i-target"/></svg>Element auswählen</button><p id="pickHint" hidden></p></div>
+      <details class="device-more"><summary>Weitere Gerätefunktionen</summary>
+      <button class="inspector-button" id="currentAppButton" title="Öffne die gewünschte App auf deinem Gerät und übernimm sie hier als Baustein."><span><svg class="icon"><use href="#i-plus"/></svg>Geöffnete App übernehmen</span><span>+</span></button>
+      <button class="inspector-button" id="inspectorButton"><span><svg class="icon"><use href="#i-code"/></svg>In uiautodev untersuchen</span><span>↗</span></button>
+      <a id="inspectorLink" class="inspector-link" href="http://127.0.0.1:20242" target="_blank" rel="noopener" hidden>uiautodev öffnen ↗</a>
+      </details>
+    </aside>
+  </section>
+  <footer><span><span class="footer-dot"></span><span id="footerConnection">Demo-Modus · Kein Gerät verbunden</span></span></footer>
+</main>
+<input type="file" id="fileInput" accept=".json,application/json" hidden>
+<div id="toast" role="status" hidden></div>
+<dialog id="captureDialog"><form method="dialog"><button class="dialog-close" aria-label="Schließen">×</button></form><h2>Bildschirmliste aufnehmen</h2><p>Wähle einen vollständigen Eintrag als Muster, zum Beispiel eine ganze Mail-Karte. Zusammengehörige Texte werden dann als ein Listeneintrag aufgenommen.</p>
+<div class="capture-fields"><label for="captureName">Listenname</label><input id="captureName" maxlength="80" value="Bildschirmliste"><label for="captureMode">Aufnahmeart</label><select id="captureMode"><option value="items">Listenelement auswählen</option><option value="texts">Einzelne Texte mit Filter (bisherige Aufnahme)</option></select></div>
+<div id="captureItemTools"><button class="button" id="capturePick">Listenelement auswählen</button><p class="dialog-note" id="capturePickHint">Öffne die gewünschte Liste auf dem Gerät. Lade dann das Bild und klicke auf einen Eintrag. Die Auswahl tippt nicht auf dem Gerät.</p>
+<div class="capture-selection" id="captureSelection" hidden><div class="capture-picture" id="capturePicture"><img id="captureImage" alt="Gerätebild zur Auswahl eines Listenelements"><div id="captureHighlight" hidden></div></div><div class="capture-result"><label for="captureCandidate">Welcher Bereich ist ein vollständiger Eintrag?</label><select id="captureCandidate" disabled></select><p id="captureMatchCount" class="dialog-note">Klicke links im Bild auf einen Eintrag.</p><ol id="capturePreview"></ol><p class="dialog-note">Prüfe den Rahmen und die Vorschau. Falls nur eine Textzeile ausgewählt ist, wähle oben einen größeren Bereich. Gleiche Einträge werden beim Scrollen nur einmal gespeichert.</p></div></div></div>
+<div id="captureTextTools" class="capture-fields" hidden><label for="captureBy">Welche Texte aufnehmen?</label><select id="captureBy"><option value="textContains">Text enthält</option><option value="resourceId">Element-ID</option><option value="className">Elementtyp</option></select><input id="captureFilter" aria-label="Listenfilter" placeholder="Leer lassen für alle Texte"></div>
+<p class="dialog-note">Die Aufnahme scrollt zuerst zum Anfang, dann bis zum Ende. Es werden von Android bereitgestellte Elemente verwendet; keine Bilderkennung.</p><p id="captureOverwrite" hidden>Eine vorhandene Liste mit diesem Namen wird nach erfolgreicher Aufnahme ersetzt.</p><div class="dialog-actions"><button class="button primary" id="captureStart" disabled>Aufnahme starten</button></div></dialog>
+<dialog id="backupDialog" class="wide-dialog"><form method="dialog"><button class="dialog-close" aria-label="Schließen">×</button></form><h2>Liste sichern</h2>
+<p>Öffnet jeden Eintrag einer Liste, blättert seinen Inhalt vollständig durch und speichert jede Seite als Screenshot. Dazu entstehen ein Bericht, eine CSV-Datei und SHA-256-Hashwerte im Fallordner.</p>
+<ol class="wizard">
+<li><h3>Fall</h3><div class="wizard-row"><span id="backupCase"></span><button class="text-button link" id="backupCaseChange">Fall wechseln …</button></div></li>
+<li><h3>Listeneintrag auf dem Gerät auswählen</h3><p class="step-note">Öffne die Liste auf dem Gerät, zum Beispiel die Chatübersicht. Lade dann das Gerätebild und klicke auf einen vollständigen Eintrag. Die Auswahl tippt nichts auf dem Gerät an.</p>
+<div class="wizard-row"><button class="button" id="backupPick">Gerätebild laden</button><button class="text-button link" id="backupDemo" hidden>Demo-Chats auf dem Demo-Gerät öffnen</button></div><p class="dialog-note" id="backupPickHint" hidden></p>
+<div class="capture-selection" id="backupSelection" hidden><div class="capture-picture"><img id="backupImage" alt="Gerätebild zur Auswahl eines Listeneintrags"><div class="pick-highlight" id="backupHighlight" hidden></div></div><div class="capture-result"><label for="backupCandidate">Welcher Bereich ist ein vollständiger Eintrag?</label><select id="backupCandidate" disabled></select><p id="backupMatchCount" class="dialog-note">Klicke links im Bild auf einen Eintrag.</p><ol id="backupPreview" class="pick-preview"></ol></div></div></li>
+<li><h3>Einstellungen</h3><div class="capture-fields"><label for="backupName">Bezeichnung der Sicherung</label><input id="backupName" maxlength="80" placeholder="z. B. WhatsApp Chats">
+<label for="backupOrder">Inhalt jedes Eintrags durchblättern</label><select id="backupOrder"><option value="end_to_start">Vom Ende zum Anfang – z. B. Chatverlauf, neueste Nachricht zuerst</option><option value="start_to_end">Vom Anfang zum Ende – z. B. E-Mail oder Profil</option></select>
+<label for="backupMaxPages">Höchstens Seiten je Eintrag</label><input id="backupMaxPages" type="number" min="1" max="2000" step="1" value="200"></div></li>
+</ol>
+<p class="dialog-note">Tipp: Das Gerät vorher in den Flugmodus versetzen, damit sich die Liste während der Sicherung nicht verändert. „Pause“ hält zwischen zwei Einträgen an, „Stopp“ beendet die Sicherung. Bereits Gesichertes bleibt mit Bericht erhalten.</p>
+<div class="dialog-actions"><button class="button" id="backupAsBlock">Als Baustein einfügen</button><button class="button primary" id="backupStart" disabled>Sicherung starten</button></div></dialog>
+<dialog id="libraryDialog" class="wide-dialog"><form method="dialog"><button class="dialog-close" aria-label="Schließen">×</button></form><h2>Ablage</h2><p id="librarySubtitle"></p>
+<div class="library"><nav class="library-items" id="libraryItems" aria-label="Sicherungen und Listen"></nav><section class="library-detail" id="libraryDetail" aria-live="polite"></section></div>
+<div class="dialog-actions"><button class="button" id="libraryCapture" title="Nur die Texte einer Liste aufnehmen, ohne Einträge zu öffnen">Nur Listentexte aufnehmen …</button><button class="button" id="libraryFolder">Fallordner öffnen</button></div></dialog>
+<dialog id="caseDialog"><form method="dialog"><button class="dialog-close" aria-label="Schließen">×</button></form><h2>Fälle</h2><p>Listen und Sicherungen werden je Fall getrennt abgelegt. Neue Sicherungen landen im aktiven Fall.</p>
+<div id="caseList" class="case-list"></div>
+<h3 id="caseFormTitle" class="case-form-title">Neuen Fall anlegen</h3><div class="capture-fields"><label for="caseNumber">Aktenzeichen oder Fallbezeichnung *</label><input id="caseNumber" maxlength="80"><label for="caseExaminerInput">Bearbeiter/in</label><input id="caseExaminerInput" maxlength="120"><label for="caseNote">Notiz</label><textarea id="caseNote" rows="2" maxlength="500"></textarea></div>
+<div class="dialog-actions"><button class="button" id="caseFormCancel" hidden>Bearbeiten abbrechen</button><button class="button primary" id="caseSave">Fall anlegen und aktivieren</button></div></dialog>
+<dialog id="confirmDialog"><h2 id="confirmTitle">Bestätigen</h2><p id="confirmText"></p><label class="list-values-label" for="confirmInput" id="confirmLabel" hidden></label><input id="confirmInput" class="dialog-input" maxlength="80" hidden><div class="dialog-actions"><button class="button" id="confirmCancel">Abbrechen</button><button class="button primary" id="confirmAccept">OK</button></div></dialog>
+<dialog id="listDialog"><form method="dialog"><button class="dialog-close" aria-label="Schließen">×</button></form><h2 id="listEditorTitle">Listenwerte</h2><p>Ein Wert pro Zeile. Semikolons trennen ebenfalls Einträge. Leere Zeilen werden ignoriert; doppelte Werte bleiben erhalten.</p><label class="list-values-label" for="listValues">Werte</label><textarea id="listValues" rows="9" spellcheck="false" placeholder="Anzeige&#10;Akku&#10;Apps"></textarea><div class="dialog-actions"><span class="dialog-note">Bis zu 500 Einträge</span><button class="button primary" id="listApply">Werte übernehmen</button></div></dialog>
+<dialog id="replaceDialog"><h2>Ablauf ersetzen?</h2><p>Deine aktuelle Arbeitsfläche wird ersetzt. Speichere wichtige Abläufe vorher über „Projekt → Als Datei speichern“.</p><div class="dialog-actions"><button class="button" id="replaceCancel">Abbrechen</button><button class="button primary" id="replaceAccept">Arbeitsfläche ersetzen</button></div></dialog>
+<dialog id="connectDialog"><form method="dialog"><button class="dialog-close" aria-label="Schließen">×</button></form><div class="dialog-icon"><svg class="icon"><use href="#i-phone"/></svg></div><h2>Gerät verbinden</h2><p>Verbinde dein Smartphone per USB und aktiviere <strong>USB-Debugging</strong> in den Entwickleroptionen. Bestätige die Verbindung auf dem Gerät.</p><div id="deviceList"></div><p id="deviceMessage" class="dialog-note"></p><div class="dialog-actions"><button class="button" id="scanButton"><svg class="icon"><use href="#i-refresh"/></svg>Erneut suchen</button><button class="button primary" id="demoButton">Demo verwenden</button></div></dialog>
+<dialog id="helpDialog"><form method="dialog"><button class="dialog-close" aria-label="Schließen">×</button></form><h2>Bedienung</h2><div class="help-step"><span>1</span><div><h3>Gerät auswählen</h3><p>Nutze das Demo-Gerät oder verbinde dein Android-Smartphone per USB mit aktiviertem USB-Debugging.</p></div></div><div class="help-step"><span>2</span><div><h3>Bausteine verbinden</h3><p>Ziehe Befehle aus der linken Spalte unter „Wenn gestartet“. Ändere Werte direkt im Baustein. In Wiederholungen und Bedingungen kannst du weitere Blöcke hineinstecken.</p></div></div><div class="help-step"><span>3</span><div><h3>Elemente vom Bildschirm übernehmen</h3><p>Klicke auf „Element auswählen“ und dann auf das gewünschte Element. Ein passender Tipp-Baustein wird eingefügt. Ohne Elementtreffer wird eine Bildschirmposition verwendet.</p></div></div><div class="help-step"><span>4</span><div><h3>Ablauf ausführen</h3><p>„Starten“ führt die verbundenen Blöcke von oben nach unten aus. Der aktuelle Block leuchtet auf. „Schrittweise“ hält vor jedem Befehl an. „Stopp“ beendet den Lauf nach einer eventuell laufenden Geräteaktion.</p></div></div><p class="dialog-note">Dein Entwurf wird automatisch in diesem Browser gespeichert. Mit „Projekt → Als Datei speichern“ erhältst du eine Projektdatei. Unter „Python-Code“ kannst du deinen Ablauf als Python-Datei herunterladen. Die Live-Ansicht aktualisiert sich ungefähr einmal pro Sekunde.</p></dialog>
+</body>
+</html>

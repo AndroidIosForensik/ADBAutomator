@@ -1,0 +1,17 @@
+{
+  "name": "adbautomator",
+  "version": "1.0.0",
+  "description": "Droid Studio – lokale visuelle Android-Automatisierung mit Python und Blockly",
+  "private": true,
+  "scripts": {
+    "test": "python -m unittest discover -s tests -v",
+    "start": "python app.py"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "blockly": "12.3.1"
+  }
+}

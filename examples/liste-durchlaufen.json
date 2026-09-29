@@ -1,0 +1,71 @@
+{
+  "format": "droid-studio",
+  "version": 1,
+  "name": "Liste durchlaufen",
+  "workspace": {
+    "blocks": {
+      "languageVersion": 0,
+      "blocks": [
+        {
+          "type": "start",
+          "id": "list-example-6",
+          "next": {
+            "block": {
+              "type": "launch",
+              "id": "list-example-5",
+              "fields": {
+                "PACKAGE": "com.android.settings"
+              },
+              "next": {
+                "block": {
+                  "type": "list_create",
+                  "id": "list-example-4",
+                  "fields": {
+                    "NAME": "Werte",
+                    "ITEMS": "Anzeige; Akku; Apps"
+                  },
+                  "next": {
+                    "block": {
+                      "type": "for_each",
+                      "id": "list-example-3",
+                      "fields": {
+                        "NAME": "Werte"
+                      },
+                      "inputs": {
+                        "BODY": {
+                          "block": {
+                            "type": "click_item",
+                            "id": "list-example-2",
+                            "fields": {
+                              "BY": "text"
+                            },
+                            "next": {
+                              "block": {
+                                "type": "press",
+                                "id": "list-example-1",
+                                "fields": {
+                                  "KEY": "back"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "extraState": {
+                "package": "com.android.settings",
+                "label": "Einstellungen"
+              }
+            }
+          },
+          "x": 40,
+          "y": 60,
+          "deletable": false
+        }
+      ]
+    }
+  }
+}

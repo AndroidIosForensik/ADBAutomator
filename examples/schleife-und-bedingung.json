@@ -1,0 +1,89 @@
+{
+  "format": "droid-studio",
+  "version": 1,
+  "name": "Schleife und Bedingung",
+  "workspace": {
+    "blocks": {
+      "languageVersion": 0,
+      "blocks": [
+        {
+          "type": "start",
+          "id": "example-start",
+          "x": 50,
+          "y": 70,
+          "deletable": false,
+          "next": {
+            "block": {
+              "type": "launch",
+              "id": "example-launch",
+              "extraState": {
+                "package": "com.android.settings",
+                "label": "Einstellungen"
+              },
+              "fields": {
+                "PACKAGE": "com.android.settings"
+              },
+              "next": {
+                "block": {
+                  "type": "repeat",
+                  "id": "example-repeat",
+                  "inputs": {
+                    "BODY": {
+                      "block": {
+                        "type": "wait",
+                        "id": "example-wait",
+                        "fields": {
+                          "SECONDS": 0.2
+                        }
+                      }
+                    }
+                  },
+                  "fields": {
+                    "TIMES": 3
+                  },
+                  "next": {
+                    "block": {
+                      "type": "if_exists",
+                      "id": "example-if_exists",
+                      "inputs": {
+                        "BODY": {
+                          "block": {
+                            "type": "click",
+                            "id": "example-click",
+                            "fields": {
+                              "BY": "text",
+                              "VALUE": "Anzeige"
+                            }
+                          }
+                        },
+                        "OTHERWISE": {
+                          "block": {
+                            "type": "press",
+                            "id": "example-press",
+                            "fields": {
+                              "KEY": "home"
+                            }
+                          }
+                        }
+                      },
+                      "fields": {
+                        "BY": "text",
+                        "VALUE": "Anzeige"
+                      },
+                      "next": {
+                        "block": {
+                          "type": "screenshot",
+                          "id": "example-screenshot"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

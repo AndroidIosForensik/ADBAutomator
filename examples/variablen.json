@@ -1,0 +1,132 @@
+{
+  "format": "droid-studio",
+  "version": 1,
+  "name": "Variablen ausprobieren",
+  "workspace": {
+    "blocks": {
+      "languageVersion": 0,
+      "blocks": [
+        {
+          "type": "start",
+          "x": 35,
+          "y": 40,
+          "deletable": false,
+          "next": {
+            "block": {
+              "type": "var_set",
+              "fields": {
+                "NAME": "Zähler"
+              },
+              "inputs": {
+                "VALUE": {
+                  "shadow": {
+                    "type": "value_number",
+                    "fields": {
+                      "NUMBER": 0
+                    },
+                    "inputs": {}
+                  }
+                }
+              },
+              "next": {
+                "block": {
+                  "type": "var_set",
+                  "fields": {
+                    "NAME": "Durchläufe"
+                  },
+                  "inputs": {
+                    "VALUE": {
+                      "shadow": {
+                        "type": "value_number",
+                        "fields": {
+                          "NUMBER": 3
+                        },
+                        "inputs": {}
+                      }
+                    }
+                  },
+                  "next": {
+                    "block": {
+                      "type": "var_set",
+                      "fields": {
+                        "NAME": "Suchtext"
+                      },
+                      "inputs": {
+                        "VALUE": {
+                          "shadow": {
+                            "type": "value_text",
+                            "fields": {
+                              "TEXT": "Anzeige"
+                            },
+                            "inputs": {}
+                          }
+                        }
+                      },
+                      "next": {
+                        "block": {
+                          "type": "var_set",
+                          "fields": {
+                            "NAME": "Kopie"
+                          },
+                          "inputs": {
+                            "VALUE": {
+                              "block": {
+                                "type": "var_get",
+                                "fields": {
+                                  "NAME": "Suchtext"
+                                },
+                                "inputs": {}
+                              }
+                            }
+                          },
+                          "next": {
+                            "block": {
+                              "type": "repeat",
+                              "fields": {
+                                "TIMES": 3
+                              },
+                              "inputs": {
+                                "TIMES_VALUE": {
+                                  "block": {
+                                    "type": "var_get",
+                                    "fields": {
+                                      "NAME": "Durchläufe"
+                                    },
+                                    "inputs": {}
+                                  }
+                                },
+                                "BODY": {
+                                  "block": {
+                                    "type": "var_change",
+                                    "fields": {
+                                      "NAME": "Zähler"
+                                    },
+                                    "inputs": {
+                                      "AMOUNT": {
+                                        "shadow": {
+                                          "type": "value_number",
+                                          "fields": {
+                                            "NUMBER": 1
+                                          },
+                                          "inputs": {}
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}
