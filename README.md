@@ -178,3 +178,15 @@ Die Blöcke werden in eine begrenzte JSON-Befehlssprache übersetzt und auf dem 
 - `tests/`: automatisierte Tests ohne Hardware
 
 Referenzen: [uiautomator2](https://github.com/openatx/uiautomator2), [uiautodev](https://github.com/codeskyblue/uiautodev), [Blockly-Serialisierung](https://docs.blockly.com/guides/configure/serialization/).
+
+## Sicherungsberichte
+
+Der Bericht stellt Bildschirmtexte neben die zugehörigen Screenshots. Originaltexte und technische Angaben bleiben aufklappbar. Bei erkannten WhatsApp-Ansichten werden Bedienleisten und bestimmte zusammengehörige Medien-Schaltflächen für die Lesefassung ausgeblendet. Nachrichtentexte werden nicht umgeschrieben; überlappende Aufnahmen bleiben getrennt. Absender und fehlende Texte werden nicht geraten.
+
+Für eine vorhandene Sicherung kann eine separate Lesefassung erzeugt werden:
+
+```powershell
+.\.venv\Scripts\python.exe tools/report_reading_copy.py "Sicherungen/Fallordner/Sicherungsordner"
+```
+
+Das prüft zunächst die ursprüngliche Hashliste und schreibt `bericht-lesefassung.html`. Originalbericht, Sicherungsdaten und Hashliste werden nicht verändert. Die zusätzliche Lesefassung ist nicht Teil der ursprünglichen Hashliste und erscheint in der Ablage neben dem Originalbericht.

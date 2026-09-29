@@ -686,7 +686,11 @@ function backupDetail(record) {
     ['SHA-256 der Hashliste', record.hash_list_sha256 || (running ? 'entsteht am Ende der Sicherung' : 'nicht vorhanden')],
   ]);
   const actions = el('div', 'detail-actions');
-  if (record.finished) actions.append(linkButton('Bericht öffnen ↗', record.base + 'bericht.html'), linkButton('CSV herunterladen', record.base + 'eintraege.csv', `${record.name}.csv`));
+  if (record.finished) {
+    actions.append(linkButton(record.reading_report ? 'Lesefassung öffnen ↗' : 'Bericht öffnen ↗', record.base + (record.reading_report || 'bericht.html')));
+    if (record.reading_report) actions.append(linkButton('Originalbericht ↗', record.base + 'bericht.html'));
+    actions.append(linkButton('CSV herunterladen', record.base + 'eintraege.csv', `${record.name}.csv`));
+  }
   actions.append(actionButton('Ordner öffnen', () => api('/api/open-folder', { id: record.id })));
   const remove = actionButton('Löschen …', () => deleteBackup(record), 'button danger-text'); remove.disabled = isRunning(); actions.append(remove);
   const parts = [head, summary, actions];

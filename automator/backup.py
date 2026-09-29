@@ -83,9 +83,11 @@ def visible_text(snap):
     for node in ET.fromstring(snap["full_xml"]).iter("node"):
         if not item_bounds(node, snap["width"], snap["height"]):
             continue
-        for value in (node.get("text", "").strip(), node.get("content-desc", "").strip()):
-            # A description often repeats the text right next to it.
-            if value and value not in lines[-3:]:
+        values = (node.get("text", "").strip(), node.get("content-desc", "").strip())
+        for index, value in enumerate(values):
+            # Only suppress a node describing its own identical text. Separate
+            # messages can legitimately repeat a word or the same timestamp.
+            if value and not (index == 1 and value == values[0]):
                 lines.append(value)
     return "\n".join(lines)
 

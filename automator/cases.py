@@ -164,6 +164,7 @@ class CaseStore:
         record["id"] = backup_id
         record["base"] = self.evidence_url(self.active_case(), backup_id)
         record["path"] = str(folder.resolve())
+        record["reading_report"] = "bericht-lesefassung.html" if (folder / "bericht-lesefassung.html").is_file() else None
         return record
 
     def delete_backup(self, backup_id):

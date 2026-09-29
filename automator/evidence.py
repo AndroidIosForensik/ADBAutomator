@@ -2,14 +2,13 @@
 import csv
 import getpass
 import hashlib
-import html
 import io
 import json
 import platform
 from pathlib import Path
-from urllib.parse import quote
 
 from .cases import now_iso, safe_name
+from .report import report_html
 
 STATUS_LABELS = {"läuft": "läuft", "abgeschlossen": "abgeschlossen", "abgebrochen": "abgebrochen", "fehler": "Fehler"}
 ORDER_LABELS = {"end_to_start": "Vom Ende zum Anfang (z. B. Chatverlauf, neueste Seite zuerst)",
@@ -111,65 +110,3 @@ def entries_csv(record):
         writer.writerow([entry["index"], entry["text"], entry["status"], entry["note"], entry["started"], entry["finished"] or "",
                          len(entry["pages"]), " | ".join(page["file"] for page in entry["pages"]), " | ".join(page["sha256"] for page in entry["pages"])])
     return out.getvalue()
-
-
-def report_html(record):
-    e = lambda value: html.escape(str(value if value is not None else ""))
-    url = lambda path: html.escape(quote(path))
-    case, device, options = record["case"], record["device"], record["options"]
-    entries = record["entries"]
-    saved = sum(1 for entry in entries if entry["status"] == "gesichert")
-    pages = sum(len(entry["pages"]) for entry in entries)
-    def row(label, value):
-        return f"<tr><th>{e(label)}</th><td>{e(value)}</td></tr>"
-    meta = "".join([
-        row("Aktenzeichen", case.get("number") or "—"), row("Bearbeiter/in", case.get("examiner") or "—"), row("Notiz", case.get("note") or "—"),
-        row("Bezeichnung der Sicherung", record["name"]), row("Status", STATUS_LABELS.get(record["status"], record["status"]) + (f" – {record['message']}" if record.get("message") else "")),
-        row("Beginn (PC-Zeit)", record["started"]), row("Ende (PC-Zeit)", record["finished"] or "—"),
-        row("Gerät", device.get("label", "")), row("Hersteller / Modell", f"{device.get('manufacturer', '')} {device.get('model', '')}".strip() or "—"),
-        row("Android-Version", f"{device.get('android', '')} (SDK {device.get('sdk', '')})" if device.get("android") else "—"),
-        row("Seriennummer (ADB)", device.get("serial", "")), row("Gerätezeit bei Beginn", device.get("device_time") or "nicht ermittelt"),
-        row("App (Paket)", record.get("app") or "—"), row("Reihenfolge je Eintrag", options.get("order_label", "")),
-        row("Höchstens Seiten je Eintrag", options.get("max_pages", "")),
-        row("Computer / Benutzer", f"{record['pc'].get('computer', '')} / {record['pc'].get('user', '')}"),
-        row("Ergebnis", f"{saved} von {len(entries)} Einträgen vollständig gesichert · {pages} Screenshots"),
-    ])
-    warnings = "".join(f"<li><span>{e(item['time'])}</span> {e(item['text'])}</li>" for item in record["warnings"]) or "<li>Keine.</li>"
-    rows = []
-    for entry in entries:
-        first = entry["pages"][0]["file"] if entry["pages"] else None
-        thumb = f'<a href="{url(first)}"><img src="{url(first)}" alt="Erste Seite von Eintrag {entry["index"]}" loading="lazy"></a>' if first else "—"
-        links = " ".join(f'<a href="{url(page["file"])}" title="SHA-256 {e(page["sha256"])}">S{number}</a>' for number, page in enumerate(entry["pages"], 1)) or "—"
-        status = f'<span class="status {"ok" if entry["status"] == "gesichert" else "problem"}">{e(entry["status"])}</span>'
-        rows.append(f'<tr><td>{entry["index"]}</td><td>{thumb}</td><td class="text">{e(entry["text"])}</td><td>{status}<div class="note">{e(entry["note"])}</div></td>'
-                    f'<td>{e(entry["started"])}<br>{e(entry["finished"] or "")}</td><td class="pages">{len(entry["pages"])}<div>{links}</div></td></tr>')
-        texts = "".join(f'<div class="page"><div class="page-head">Seite {number} · <a href="{url(page["file"])}">Screenshot</a> · <a href="{url(page["text_file"])}">Text</a></div>'
-                        f'<div class="text">{e(page["text"]) or "<em>kein Text auf dieser Seite</em>"}</div></div>'
-                        for number, page in enumerate(entry["pages"], 1) if "text" in page)
-        if texts:
-            rows.append(f'<tr class="page-texts"><td></td><td colspan="5"><div class="page-grid">{texts}</div></td></tr>')
-    files = [(page["file"], page["sha256"], page["time"]) for entry in entries for page in entry["pages"]]
-    files += [(page["text_file"], page["text_sha256"], page["time"]) for entry in entries for page in entry["pages"] if "text_file" in page]
-    hashes = "".join(f'<tr><td><a href="{url(name)}">{e(name)}</a></td><td class="hash">{e(digest)}</td><td>{e(time)}</td></tr>' for name, digest, time in sorted(files))
-    return f"""<!doctype html>
-<html lang="de"><head><meta charset="utf-8"><title>Sicherungsbericht · {e(record['name'])}</title>
-<style>
-body{{font:13px/1.5 "Segoe UI",Arial,sans-serif;color:#1f2433;margin:32px;max-width:1200px}}h1{{font-size:22px;margin:0 0 4px}}h2{{font-size:16px;margin:28px 0 8px}}
-.sub{{color:#5d6475;margin-bottom:20px}}table{{border-collapse:collapse;width:100%}}th,td{{border:1px solid #d9dce4;padding:6px 8px;text-align:left;vertical-align:top}}
-.meta th{{width:230px;background:#f5f6f9;font-weight:600}}.entries th{{background:#f5f6f9}}.text{{white-space:pre-wrap;overflow-wrap:anywhere;max-width:420px}}
-img{{width:110px;border:1px solid #d9dce4}}.status{{font-weight:600}}.ok{{color:#23704f}}.problem{{color:#a23b3b}}.note{{color:#5d6475;font-size:12px}}
-.pages div{{font-size:11px;margin-top:4px;word-spacing:4px}}.page-texts td{{background:#fafbfd;border-top:0}}
-.page-grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}}.page{{border:1px solid #e3e6ee;border-radius:6px;padding:6px 8px;background:#fff}}
-.page-head{{font-size:11px;color:#5d6475;margin-bottom:4px}}.page .text{{max-width:none;font-size:12px}}.hash{{font-family:Consolas,monospace;font-size:11px;overflow-wrap:anywhere}}ul{{padding-left:18px}}li span{{color:#5d6475}}
-@media print{{body{{margin:0}}a{{color:inherit;text-decoration:none}}tr{{break-inside:avoid}}}}
-</style></head><body>
-<h1>Sicherungsbericht: {e(record['name'])}</h1>
-<div class="sub">Erstellt mit Droid Studio. Die Prüfsummen aller Dateien stehen in <code>hashes.sha256</code> (SHA-256), die maschinenlesbaren Daten in <code>sicherung.json</code> und <code>eintraege.csv</code>.</div>
-<table class="meta">{meta}</table>
-<h2>Hinweise und Warnungen</h2><ul>{warnings}</ul>
-<h2>Einträge ({len(entries)})</h2>
-<table class="entries"><tr><th>Nr</th><th>Erste Seite</th><th>Eintrag (Text in der Liste)</th><th>Status</th><th>Beginn / Ende</th><th>Seiten</th></tr>{''.join(rows) or '<tr><td colspan="6">Keine Einträge gesichert.</td></tr>'}</table>
-<h2>Dateien und SHA-256</h2>
-<table class="entries"><tr><th>Datei</th><th>SHA-256</th><th>Zeitpunkt</th></tr>{hashes or '<tr><td colspan="3">Keine Screenshots.</td></tr>'}</table>
-</body></html>
-"""
