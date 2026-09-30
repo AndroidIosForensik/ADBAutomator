@@ -32,6 +32,8 @@ def main():
         runtime = root / 'runtime'
         runtime.mkdir(parents=True)
         # A ._pth file isolates this runtime from installed Python and PYTHONPATH.
+        # No "import site": it would add the Windows user's own site-packages
+        # (%APPDATA%\Python\...), whose packages could then affect the app.
         for name in ('python.exe', 'python3.dll', tag + '.dll', 'vcruntime140.dll', 'vcruntime140_1.dll', 'LICENSE.txt'):
             copy(base / name, runtime / name)
         for source in (base / 'DLLs').iterdir():
@@ -47,7 +49,7 @@ def main():
                 if source.is_file() and not excluded.intersection(relative.parts) and source.suffix not in ('.pyc', '.pyo'):
                     stdlib.write(source, relative.as_posix())
         (runtime / (tag + '._pth')).write_text(
-            f'{tag}.zip\n.\nDLLs\nsite-packages\n..\nimport site\n', encoding='utf-8')
+            f'{tag}.zip\n.\nDLLs\nsite-packages\n..\n', encoding='utf-8')
 
         # Keep package resources (ADB, APKs, DLLs, schemas) and license metadata.
         # The source environment contains only the application's dependencies + pip.
@@ -72,6 +74,7 @@ def main():
                 copy(source, runtime / 'site-packages' / relative)
 
         copy(ROOT / 'app.py', root / 'app.py')
+        copy(ROOT / 'tools/report_reading_copy.py', root / 'tools/report_reading_copy.py')
         for directory, pattern in [('automator', '*.py'), ('web', '*'), ('examples', '*.json')]:
             for source in (ROOT / directory).glob(pattern):
                 if source.is_file():
@@ -93,7 +96,7 @@ def main():
             b'@echo off\r\nsetlocal\r\ncd /d "%~dp0"\r\n'
             b'"%~dp0runtime\\python.exe" -B "%~dp0app.py" %*\r\n'
             b'if errorlevel 1 pause\r\n')
-        (root / 'LIESMICH.txt').write_text('''Droid Studio - portable fuer Windows 10/11 (64 Bit, x64)
+        (root / 'LIESMICH.txt').write_text(r'''Droid Studio - portable fuer Windows 10/11 (64 Bit, x64)
 
 ZIP vollstaendig in einen beschreibbaren Ordner entpacken.
 Starten.bat doppelklicken. Die App oeffnet sich im Browser.
@@ -111,11 +114,23 @@ uiautodev: unter Weitere Geraetefunktionen oeffnen. Seine Weboberflaeche
 wird beim ersten Aufruf aus dem Internet geladen. Die Studio-Oberflaeche
 und alle Bibliotheken sind bereits im ZIP enthalten.
 
+Liste sichern: Liste auf dem Telefon oeffnen, "Liste sichern" druecken,
+im Geraetebild einen Eintrag anklicken und die Sicherung starten. Jeder
+Eintrag wird geoeffnet, vollstaendig durchgeblaettert und mit Screenshot,
+Seitentext, Bericht und SHA-256-Hashwerten gesichert. Vorher das Telefon
+in den Flugmodus schalten (sonst senden Messenger Lesebestaetigungen).
+
+Faelle: oben neben dem Ablaufnamen einen Fall mit Aktenzeichen anlegen.
+Sicherungen liegen in Sicherungen\<Fall>\, Listen in data. Die Ablage
+zeigt beides je Fall. Diese Ordner werden bei Bedarf angelegt.
+
+Lesefassung fuer eine bestehende Sicherung (Originale bleiben unveraendert):
+  runtime\python.exe tools\report_reading_copy.py "Sicherungen\<Fall>\<Sicherung>"
+
 Eigene Ablaeufe unter Projekt > Als Datei speichern exportieren und auf
 dem anderen PC unter Projekt > Datei oeffnen laden. Automatische Entwuerfe
 liegen im jeweiligen Browser und reisen nicht mit dem ZIP mit.
-Neue Listen liegen in data, Screenshots in outputs. Diese Ordner werden
-bei Bedarf angelegt. Das Paket enthaelt keine persoenlichen Listen oder Logs.
+Das Paket enthaelt keine persoenlichen Listen, Sicherungen oder Logs.
 
 Die Ordner runtime, automator, web und node_modules gehoeren zur App.
 Nicht einzeln verschieben; zum Umziehen den gesamten Ordner kopieren.
