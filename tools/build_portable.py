@@ -2,10 +2,12 @@
 import hashlib
 from importlib.metadata import distributions
 import json
+import os
 import platform
 from pathlib import Path
 import shutil
 import struct
+import subprocess
 import sys
 import tempfile
 from zipfile import ZipFile, ZIP_DEFLATED
@@ -96,15 +98,22 @@ def main():
             b'@echo off\r\nsetlocal\r\ncd /d "%~dp0"\r\n'
             b'"%~dp0runtime\\python.exe" -B "%~dp0app.py" %*\r\n'
             b'if errorlevel 1 pause\r\n')
+        icon = Path(temp) / 'droid-studio.ico'
+        make_icon(icon)
+        compile_launcher(root / 'Droid Studio.exe', icon)
         (root / 'LIESMICH.txt').write_text(r'''Droid Studio - portable fuer Windows 10/11 (64 Bit, x64)
 
 ZIP vollstaendig in einen beschreibbaren Ordner entpacken.
-Starten.bat doppelklicken. Die App oeffnet sich im Browser.
+"Droid Studio.exe" doppelklicken (alternativ Starten.bat).
+Die App oeffnet sich im Browser.
 Python, Node.js und ADB sind enthalten. Eine Installation ist nicht erforderlich.
 Das Konsolenfenster offen lassen. Strg+C beendet die App.
 
+Die Exe ist nicht digital signiert. Windows kann beim ersten Start warnen:
+"Weitere Informationen" > "Trotzdem ausfuehren".
+
 Adresse: http://127.0.0.1:8765
-Anderer Port: Starten.bat --port 8766
+Anderer Port: "Droid Studio.exe" --port 8766
 
 Android-Geraet: USB-Debugging aktivieren, per USB anschliessen und die
 Verbindung auf dem Telefon bestaetigen. Je nach Hersteller kann Windows
@@ -139,9 +148,40 @@ Nicht einzeln verschieben; zum Umziehen den gesamten Ordner kopieren.
             for source in sorted(root.rglob('*')):
                 if source.is_file():
                     zipped.write(source, source.relative_to(root.parent).as_posix())
-    digest = hashlib.sha256(archive.read_bytes()).hexdigest()
-    archive.with_suffix('.zip.sha256').write_text(f'{digest}  {archive.name}\n', encoding='ascii')
-    print(json.dumps({'archive': str(archive), 'size_mb': round(archive.stat().st_size / 1024**2, 1), 'sha256': digest}))
+        # Single file: the same starter with the ZIP embedded; it unpacks itself next to the exe.
+        single = DIST / 'Droid-Studio.exe'
+        compile_launcher(single, icon, payload=archive)
+    result = {}
+    for built in (archive, single):
+        digest = hashlib.sha256(built.read_bytes()).hexdigest()
+        Path(f'{built}.sha256').write_text(f'{digest}  {built.name}\n', encoding='ascii')
+        result[built.name] = {'size_mb': round(built.stat().st_size / 1024**2, 1), 'sha256': digest}
+    print(json.dumps(result))
+
+
+def make_icon(target):
+    """A simple app icon: phone outline on the studio's purple."""
+    from PIL import Image, ImageDraw
+    image = Image.new('RGBA', (256, 256), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(image)
+    draw.rounded_rectangle((8, 8, 248, 248), radius=56, fill=(121, 96, 216, 255))
+    draw.rounded_rectangle((78, 34, 178, 222), radius=22, outline=(255, 255, 255, 255), width=14)
+    draw.rounded_rectangle((108, 190, 148, 200), radius=5, fill=(255, 255, 255, 255))
+    draw.rounded_rectangle((100, 74, 156, 132), radius=10, fill=(176, 158, 240, 255))
+    image.save(target, sizes=[(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)])
+
+
+def compile_launcher(target, icon, payload=None):
+    """Compile tools/launcher/DroidStudio.cs with the C# compiler of the .NET Framework."""
+    framework = Path(os.environ.get('SystemRoot', r'C:\Windows')) / 'Microsoft.NET' / 'Framework64' / 'v4.0.30319'
+    command = [str(framework / 'csc.exe'), '/nologo', '/target:exe', '/optimize+', f'/out:{target}', f'/win32icon:{icon}',
+               f'/reference:{framework / "System.IO.Compression.dll"}', f'/reference:{framework / "System.IO.Compression.FileSystem.dll"}']
+    if payload:
+        command.append(f'/resource:{payload},payload.zip')
+    command.append(str(ROOT / 'tools' / 'launcher' / 'DroidStudio.cs'))
+    result = subprocess.run(command, capture_output=True, text=True)
+    if result.returncode:
+        raise SystemExit(f'Starter konnte nicht kompiliert werden:\n{result.stdout}{result.stderr}')
 
 
 if __name__ == '__main__':

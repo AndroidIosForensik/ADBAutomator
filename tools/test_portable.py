@@ -23,8 +23,8 @@ def get(base, route):
         return response.read()
 
 
-def wait_ready(child, base, route):
-    deadline = time.monotonic() + 25
+def wait_ready(child, base, route, timeout=25):
+    deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         if child.poll() is not None:
             raise AssertionError('Portable process exited before it became ready.')
@@ -100,7 +100,45 @@ print(json.dumps({'isolated':sys.flags.isolated,'runtime':sys.executable,'bundle
                 except subprocess.TimeoutExpired:
                     child.kill()
                     child.wait(timeout=5)
+        check_launchers(folder, app, options)
         print('ZIP verification passed; no development runtime required.')
+
+
+def stop_tree(child):
+    # The starter waits for its Python child; stop both together.
+    subprocess.run(['taskkill', '/PID', str(child.pid), '/T', '/F'], capture_output=True)
+    child.wait(timeout=10)
+
+
+def start_exe(exe, options, timeout=25):
+    port = free_port()
+    child = subprocess.Popen([exe, '--no-browser', '--port', str(port)], **{**options, 'cwd': exe.parent},
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    try:
+        session = wait_ready(child, f'http://127.0.0.1:{port}', '/api/session', timeout)
+        assert session['app'] == 'droid-studio' and session.get('version'), session
+    except BaseException:
+        stop_tree(child)
+        raise
+    return child
+
+
+def check_launchers(folder, app, options):
+    stop_tree(start_exe(app / 'Droid Studio.exe', options))
+    print('Starter in the unpacked folder: OK')
+    single = folder / 'Einzelne Datei' / 'Droid-Studio.exe'
+    single.parent.mkdir()
+    single.write_bytes((ROOT / 'dist/Droid-Studio.exe').read_bytes())
+    stop_tree(start_exe(single, options, timeout=120))
+    marker = single.parent / 'Droid Studio' / '.droid-studio-payload'
+    assert marker.is_file() and (single.parent / 'Droid Studio' / 'runtime' / 'python.exe').is_file()
+    unpacked = marker.stat().st_mtime_ns
+    (single.parent / 'Droid Studio' / 'Sicherungen').mkdir()
+    (single.parent / 'Droid Studio' / 'Sicherungen' / 'beweis.txt').write_text('bleibt', encoding='utf-8')
+    stop_tree(start_exe(single, options))
+    assert marker.stat().st_mtime_ns == unpacked, 'second start must not unpack again'
+    assert (single.parent / 'Droid Studio' / 'Sicherungen' / 'beweis.txt').read_text(encoding='utf-8') == 'bleibt'
+    print('Single-file Droid-Studio.exe: unpacks once, starts, keeps case data: OK')
 
 
 if __name__ == '__main__':

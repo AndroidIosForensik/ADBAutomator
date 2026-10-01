@@ -22,6 +22,20 @@ npm.cmd ci --ignore-scripts
 .\.venv\Scripts\python.exe app.py
 ```
 
+### Ohne Installation: Exe und portable ZIP
+
+```powershell
+.\.venv\Scripts\python.exe tools\build_portable.py
+.\.venv\Scripts\python.exe tools\test_portable.py
+```
+
+Das erzeugt in `dist/` zwei Varianten, beide mit eingebautem Python, Blockly und ADB:
+
+- `Droid-Studio.exe` – eine einzelne Datei. Beim ersten Start entpackt sie sich in einen Ordner `Droid Studio` daneben und startet die App; spätere Starts gehen direkt los. Nach einem Update werden nur Programmdateien ersetzt, `Sicherungen` und `data` bleiben erhalten.
+- `Droid-Studio-Windows-x64.zip` – zum Entpacken, etwa auf einen USB-Stick; darin `Droid Studio.exe` doppelklicken.
+
+Zu jeder Datei liegt eine `.sha256`-Prüfsumme bei. Die Exe ist nicht signiert; Windows SmartScreen kann beim ersten Start warnen („Weitere Informationen“ → „Trotzdem ausführen“). Der Starter wird beim Build mit dem C#-Compiler des .NET Framework aus `tools/launcher/DroidStudio.cs` übersetzt.
+
 Ein anderer Port ist mit `app.py --port 8766` möglich. `--no-browser` verhindert das automatische Öffnen des Browsers. Der Server lauscht ausschließlich auf `127.0.0.1`.
 
 ## Liste sichern (forensische Dokumentation)
