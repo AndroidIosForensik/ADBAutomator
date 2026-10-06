@@ -46,7 +46,7 @@ let lastSelectedBlockId = null;
 let capturePicker, backupPicker, captureBlock = null, backupBlock = null;
 let libraryData = null, librarySelection = null, libraryTimer = null, caseEditing = null;
 const STORAGE = 'droid-studio-project-v1';
-const APP_VERSION = 2; // must match APP_VERSION in automator/server.py
+const APP_VERSION = 3; // must match APP_VERSION in automator/server.py
 const appChoices = [['Einstellungen', 'com.android.settings'], ['Chrome', 'com.android.chrome'], ['YouTube', 'com.google.android.youtube'], ['WhatsApp', 'com.whatsapp']];
 function rememberApp(packageName, label) { if (!appChoices.some(option => option[1] === packageName)) appChoices.push([label || packageName.split('.').pop(), packageName]); }
 
@@ -424,21 +424,25 @@ function confirmAction({ title, text, accept = 'OK', danger = false, input = nul
   });
 }
 
-/* Device picture in which the user clicks one complete list entry (Liste sichern, Listentexte aufnehmen). */
+/* Preview XML list entries on hover; clicking or choosing a scope fixes the pattern. */
 class ListPicker {
   constructor(prefix, changed) {
     this.prefix = prefix; this.loading = false;
     this.clear(); this.changed = changed;
     this.el('Image').addEventListener('click', event => this.pick(event));
-    this.el('Candidate').addEventListener('change', () => this.show());
+    this.el('Image').addEventListener('pointermove', event => this.hover(event));
+    this.el('Image').addEventListener('pointerleave', () => this.restore());
+    this.el('Candidate').addEventListener('change', () => this.commit());
   }
   el(name) { return $(this.prefix + name); }
   ready() { return Boolean(this.choice) && this.serial === state?.device.serial; }
   clear() {
     this.choice = null; this.candidates = []; this.matches = []; this.serial = null;
+    this.selectedMatches = []; this.hoverChoice = null;
     this.el('Selection').hidden = true; this.el('Highlight').hidden = true;
     this.el('Candidate').replaceChildren(); this.el('Candidate').disabled = true; this.el('Preview').replaceChildren();
-    this.el('MatchCount').textContent = 'Klicke links im Bild auf einen Eintrag.';
+    this.el('Current').hidden = true; this.el('Current').textContent = '';
+    this.el('MatchCount').textContent = 'Fahre mit der Maus über einen Eintrag. Ein Klick fixiert die Auswahl.';
     this.changed?.();
   }
   async load() {
@@ -450,34 +454,64 @@ class ListPicker {
       if (preview.serial !== state.device.serial) throw new Error('Das Gerät wurde gewechselt. Bitte das Bild neu laden.');
       this.candidates = preview.candidates; this.serial = preview.serial;
       this.el('Image').src = preview.image; this.el('Selection').hidden = false;
-      hint.textContent = this.candidates.length ? 'Klicke im Bild auf einen Eintrag. Prüfe danach den Rahmen und die Vorschau.' : 'Keine lesbaren Einträge gefunden. Öffne eine Liste auf dem Gerät und lade das Bild erneut.';
+      hint.textContent = this.candidates.length ? 'Fahre über einen Eintrag: Rahmen und Vorschau folgen der Maus. Klicke, um den Eintrag als Muster auszuwählen.' : 'Keine lesbaren Einträge gefunden. Öffne eine Liste auf dem Gerät und lade das Bild erneut.';
       this.el('Pick').textContent = 'Gerätebild neu laden';
     } catch (error) { hint.textContent = error.message; throw error; }
     finally { this.loading = false; this.changed?.(); }
   }
-  pick(event) {
-    const rect = event.target.getBoundingClientRect();
+  matchesAt(event) {
+    const rect = this.el('Image').getBoundingClientRect();
+    if (!rect.width || !rect.height) return [];
     const x = (event.clientX - rect.left) / rect.width, y = (event.clientY - rect.top) / rect.height;
     const area = ({ bounds: [x1, y1, x2, y2] }) => (x2 - x1) * (y2 - y1);
-    this.matches = this.candidates.filter(({ bounds: [x1, y1, x2, y2] }) => x >= x1 && x <= x2 && y >= y1 && y <= y2);
-    this.matches.sort((a, b) => a.depth - b.depth || area(b) - area(a));
+    // Repetition means siblings in the XML, not texts collected across many rows.
+    const priority = candidate => (candidate.in_list ? 2 : 0) + (candidate.repeated || candidate.clickable ? 1 : 0);
+    return this.candidates.filter(({ bounds: [x1, y1, x2, y2] }) => x >= x1 && x < x2 && y >= y1 && y < y2)
+      .sort((a, b) => priority(b) - priority(a) ||
+        (priority(a) % 2 ? a.depth - b.depth : b.depth - a.depth) || area(a) - area(b));
+  }
+  options(matches, choice) {
+    this.matches = matches;
     this.el('Candidate').replaceChildren(...this.matches.map((candidate, index) => {
       const option = el('option', '', `${index + 1}. ${candidate.count} passende Einträge · ${candidate.label.replace(/\s+/g, ' ').slice(0, 90)}`); option.value = index; return option;
     }));
-    const preferred = this.matches.findIndex(candidate => candidate.count > 1);
-    if (this.matches.length) this.el('Candidate').value = String(Math.max(0, preferred));
-    this.el('Candidate').disabled = !this.matches.length; this.show();
+    if (choice) this.el('Candidate').value = String(this.matches.indexOf(choice));
+    this.el('Candidate').disabled = !this.matches.length;
   }
-  show() {
-    this.choice = this.matches[Number(this.el('Candidate').value)] || null;
-    this.el('Highlight').hidden = !this.choice; this.el('Preview').replaceChildren();
-    if (this.choice) {
-      const [x1, y1, x2, y2] = this.choice.bounds;
+  hover(event) {
+    if (this.loading) return;
+    const matches = this.matchesAt(event), choice = matches[0] || null;
+    if (choice === this.hoverChoice && matches.length === this.matches.length && matches.every((item, index) => item === this.matches[index])) return;
+    this.hoverChoice = choice;
+    this.options(matches, choice); this.show(choice, true);
+  }
+  pick(event) {
+    const matches = this.matchesAt(event);
+    // Keep a manually chosen scope when clicking the same entry again.
+    const choice = matches.includes(this.choice) ? this.choice : matches[0] || null;
+    this.options(matches, choice); this.commit();
+  }
+  commit() {
+    const choice = this.matches[Number(this.el('Candidate').value)] || null;
+    if (!choice) return;
+    this.choice = choice; this.selectedMatches = [...this.matches]; this.hoverChoice = null;
+    this.show(this.choice); this.changed?.();
+  }
+  restore() {
+    this.hoverChoice = null;
+    this.options(this.selectedMatches, this.choice); this.show(this.choice);
+  }
+  show(choice, hovering = false) {
+    this.el('Highlight').hidden = !choice; this.el('Preview').replaceChildren();
+    this.el('Highlight').classList.toggle('hovering', hovering);
+    this.el('Current').hidden = !choice;
+    if (choice) {
+      const [x1, y1, x2, y2] = choice.bounds;
       Object.assign(this.el('Highlight').style, { left: `${x1 * 100}%`, top: `${y1 * 100}%`, width: `${(x2 - x1) * 100}%`, height: `${(y2 - y1) * 100}%` });
-      this.el('MatchCount').textContent = `${this.choice.count} passende Einträge im sichtbaren Bereich · Vorschau der ersten ${this.choice.preview.length}`;
-      this.el('Preview').append(...this.choice.preview.map(value => el('li', '', value)));
-    } else this.el('MatchCount').textContent = 'Hier wurde kein lesbarer Listeneintrag erkannt. Wähle einen anderen Bereich.';
-    this.changed?.();
+      this.el('Current').textContent = `${hovering ? 'Unter der Maus' : 'Ausgewählter Eintrag'}: ${choice.label}`;
+      this.el('MatchCount').textContent = `${choice.count} passende Einträge im sichtbaren Bereich · Vorschau der ersten ${choice.preview.length}${hovering ? ' · Zum Auswählen klicken' : ' · Auswahl fixiert'}`;
+      this.el('Preview').append(...choice.preview.map(value => el('li', '', value)));
+    } else this.el('MatchCount').textContent = hovering ? 'Hier wurde kein lesbarer Listeneintrag erkannt. Wähle einen anderen Bereich.' : 'Fahre mit der Maus über einen Eintrag. Ein Klick fixiert die Auswahl.';
   }
 }
 

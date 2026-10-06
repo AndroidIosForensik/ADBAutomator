@@ -77,6 +77,41 @@ class ItemTests(unittest.TestCase):
         xml = xml.replace('text="Google, Betreff, Vorschau"', 'content-desc="Google, Betreff, Vorschau"')
         self.assertEqual(read_list_items(xml, 1000, 800, row_pattern(xml))[0], 'Google, Betreff, Vorschau')
 
+    def test_repetition_is_based_on_xml_siblings_not_total_matches(self):
+        candidates = list_item_candidates(mailbox(), 1000, 800)
+        rows = [c for c in candidates if c['pattern']['item'][-1]['resource_id'] == 'mail']
+        senders = [c for c in candidates if c['pattern']['item'][-1]['resource_id'] == 'sender']
+        self.assertTrue(all(c['in_list'] and c['repeated'] for c in rows))
+        self.assertTrue(all(c['count'] == 2 and not c['repeated'] for c in senders))
+
+    def test_single_clickable_row_and_nested_wrappers_remain_selectable(self):
+        root = ET.fromstring(mailbox(names=('Google',)))
+        region = next(node for node in root.iter('node') if node.get('resource-id') == 'inbox')
+        row = next(node for node in region if node.get('resource-id') == 'mail')
+        row.set('clickable', 'true')
+        region.remove(row)
+        wrapper = ET.SubElement(region, 'node', {'class': 'Wrapper', 'bounds': '[0,100][400,700]'})
+        wrapper.append(row)
+        xml = ET.tostring(root, encoding='unicode')
+        candidate = next(c for c in list_item_candidates(xml, 1000, 800)
+                         if c['pattern']['item'][-1]['resource_id'] == 'mail')
+        self.assertTrue(candidate['clickable'])
+        self.assertFalse(candidate['repeated'])
+        self.assertEqual(candidate['depth'], 2)
+        self.assertEqual(read_list_items(xml, 1000, 800, candidate['pattern']), ['Google\nBetreff\nVorschau'])
+
+    def test_candidate_bounds_respect_xml_ancestor_viewport(self):
+        xml = '''<hierarchy><node class="List" scrollable="true" bounds="[0,100][400,600]">
+          <node class="Card" text="Oben" bounds="[0,0][400,150]"/>
+          <node class="Card" text="Unten" bounds="[0,550][400,750]"/>
+          <node class="Card" text="Außerhalb" bounds="[0,650][400,750]"/>
+        </node></hierarchy>'''
+        candidates = list_item_candidates(xml, 1000, 800)
+        self.assertEqual([c['label'] for c in candidates], ['Oben', 'Unten'])
+        self.assertEqual([c['bounds'] for c in candidates], [[0, .125, .4, .1875], [0, .6875, .4, .75]])
+        self.assertEqual(candidates[0]['preview'], ['Oben', 'Unten'])
+        self.assertEqual(candidates[0]['count'], 2)
+
     def test_category_card_with_same_class_is_not_a_mail_summary(self):
         xml = mailbox(parent_text=True)
         pattern = row_pattern(xml)

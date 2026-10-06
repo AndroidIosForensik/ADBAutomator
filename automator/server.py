@@ -25,7 +25,7 @@ from .list_items import list_item_candidates
 
 ROOT = Path(__file__).resolve().parent.parent
 # Raised whenever page and server API change together; both sides compare it.
-APP_VERSION = 2
+APP_VERSION = 3
 
 
 def inspector_ready(url):

@@ -52,13 +52,20 @@ def item_text(node, width, height):
 
 
 def pattern_nodes(root, path, width, height):
-    nodes = [root]
+    nodes = [(root, item_bounds(root, width, height) or (0, 0, width, height))]
     for segment in path:
-        nodes = [child for parent in nodes for child in parent
-                 if child.tag == 'node' and item_bounds(child, width, height)
-                 and child.get('class', '') == segment['class']
-                 and child.get('resource-id', '') == segment['resource_id']]
-    return nodes
+        matches = []
+        for parent, viewport in nodes:
+            for child in parent:
+                bounds = item_bounds(child, width, height)
+                if child.tag != 'node' or not bounds or child.get('class', '') != segment['class'] or child.get('resource-id', '') != segment['resource_id']:
+                    continue
+                box = (max(bounds[0], viewport[0]), max(bounds[1], viewport[1]),
+                       min(bounds[2], viewport[2]), min(bounds[3], viewport[3]))
+                if box[2] > box[0] and box[3] > box[1]:
+                    matches.append((child, box))
+        nodes = matches
+    return [node for node, _ in nodes]
 
 
 def selected_region(xml, width, height, pattern):
@@ -122,20 +129,33 @@ def list_item_candidates(xml, width, height):
     candidates = []
     preview_cache = {}
 
-    def visit(parent, path, region_path):
+    def visit(parent, path, region_path, parent_box):
+        visible = []
+        sibling_counts = {}
         for node in parent:
-            if node.tag != 'node' or not item_bounds(node, width, height):
+            bounds = item_bounds(node, width, height)
+            if node.tag != 'node' or not bounds:
                 continue
+            # XML children can extend beyond a scroll pane's visible viewport.
+            box = (max(bounds[0], parent_box[0]), max(bounds[1], parent_box[1]),
+                   min(bounds[2], parent_box[2]), min(bounds[3], parent_box[3]))
+            if box[2] <= box[0] or box[3] <= box[1]:
+                continue
+            text = item_text(node, width, height)
+            source = 'text' if node.get('text', '').strip() else 'content-desc' if node.get('content-desc', '').strip() else 'children'
+            signature = (node.get('class', ''), node.get('resource-id', ''), source)
+            if text:
+                sibling_counts[signature] = sibling_counts.get(signature, 0) + 1
+            visible.append((node, box, text, source, signature))
+        for node, box, text, source, signature in visible:
             descriptor = {'class': node.get('class', ''), 'resource_id': node.get('resource-id', '')}
             node_path = path + [descriptor]
             if len(node_path) > 32:
                 continue
             if node.get('scrollable') == 'true':
-                visit(node, node_path, node_path)
+                visit(node, node_path, node_path, box)
                 continue
-            text = item_text(node, width, height)
             if text and node_path[len(region_path):]:
-                source = 'text' if node.get('text', '').strip() else 'content-desc' if node.get('content-desc', '').strip() else 'children'
                 pattern = {'region': region_path, 'item': node_path[len(region_path):], 'source': source}
                 key = repr(pattern)
                 if key not in preview_cache:
@@ -145,10 +165,13 @@ def list_item_candidates(xml, width, height):
                         preview_cache[key] = []
                 values = preview_cache[key]
                 if values:
-                    x1, y1, x2, y2 = item_bounds(node, width, height)
+                    x1, y1, x2, y2 = box
                     candidates.append({'bounds': [x1 / width, y1 / height, x2 / width, y2 / height],
                                        'pattern': pattern, 'label': text[:200], 'count': len(values),
-                                       'preview': values[:5], 'depth': len(pattern['item'])})
-            visit(node, node_path, region_path)
-    visit(root, [], [])
+                                       'preview': values[:5], 'depth': len(pattern['item']),
+                                       'in_list': bool(region_path),
+                                       'repeated': sibling_counts.get(signature, 0) > 1,
+                                       'clickable': node.get('clickable') == 'true'})
+            visit(node, node_path, region_path, box)
+    visit(root, [], [], (0, 0, width, height))
     return candidates
