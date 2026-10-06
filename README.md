@@ -1,19 +1,27 @@
 # Droid Studio (ADBAutomator)
 
-Lokale Python-Anwendung für die forensische Sicherung von Android-Bildschirminhalten und für Android-Abläufe aus Scratch-ähnlichen Blockly-Bausteinen. „Liste sichern“ öffnet jeden Eintrag einer Liste (etwa alle Chats), blättert ihn vollständig durch und dokumentiert jede Seite mit Screenshot, Bericht und SHA-256-Hashwerten. Die Oberfläche läuft im Browser, die Geräteaktionen führt `uiautomator2` auf deinem Computer aus.
+[Deutsch](README.de.md) · **English**
 
-## Starten unter Windows
+Local Python application for the forensic capture of Android screen content and for Android automations built from Scratch-like Blockly blocks. „Liste sichern“ (*back up list*) opens every entry of a list (for example all chats), pages through it completely and documents every page with a screenshot, its visible text, a report and SHA-256 hashes. The user interface runs in the browser; device actions are performed by `uiautomator2` on your computer.
 
-Ist die Umgebung bereits eingerichtet: **`start.bat` doppelklicken**. Die Oberfläche öffnet sich unter <http://127.0.0.1:8765>.
+The user interface is in German. In this README, German UI labels are quoted as „Label“ followed by an English translation.
 
-Bei einer neuen Installation:
+## Download
 
-1. Python 3.11 oder neuer, Node.js mit npm und Git installieren.
-2. Das Repository holen: `git clone https://github.com/AndroidIosForensik/ADBAutomator.git`
-3. Im Ordner `setup.bat` ausführen. Das installiert die Python-Bibliotheken in `.venv` sowie Blockly lokal in `node_modules`.
-4. `start.bat` öffnen. Das Konsolenfenster offen lassen; Strg+C beendet die App und einen von ihr gestarteten uiautodev-Inspektor.
+Ready-to-run Windows version (Windows 10/11, 64-bit, no installation needed): **[Releases](https://github.com/AndroidIosForensik/ADBAutomator/releases/latest)**. Download `Droid-Studio.exe` and double-click it – on first start it unpacks itself into a folder „Droid Studio“ next to it. Alternatively unpack the ZIP file and start `Droid Studio.exe` inside it.
 
-Alternativ:
+## Running on Windows
+
+If the environment is already set up: **double-click `start.bat`**. The interface opens at <http://127.0.0.1:8765>.
+
+For a new installation:
+
+1. Install Python 3.11 or newer, Node.js with npm, and Git.
+2. Get the repository: `git clone https://github.com/AndroidIosForensik/ADBAutomator.git`
+3. Run `setup.bat` in the folder. It installs the Python libraries into `.venv` and Blockly locally into `node_modules`.
+4. Open `start.bat`. Keep the console window open; Ctrl+C stops the app and any uiautodev inspector it started.
+
+Alternatively:
 
 ```powershell
 python -m venv .venv
@@ -22,151 +30,164 @@ npm.cmd ci --ignore-scripts
 .\.venv\Scripts\python.exe app.py
 ```
 
-### Ohne Installation: Exe und portable ZIP
+### Without installation: exe and portable ZIP
 
 ```powershell
 .\.venv\Scripts\python.exe tools\build_portable.py
 .\.venv\Scripts\python.exe tools\test_portable.py
 ```
 
-Das erzeugt in `dist/` zwei Varianten, beide mit eingebautem Python, Blockly und ADB:
+This creates two variants in `dist/`, both with bundled Python, Blockly and ADB:
 
-- `Droid-Studio.exe` – eine einzelne Datei. Beim ersten Start entpackt sie sich in einen Ordner `Droid Studio` daneben und startet die App; spätere Starts gehen direkt los. Nach einem Update werden nur Programmdateien ersetzt, `Sicherungen` und `data` bleiben erhalten.
-- `Droid-Studio-Windows-x64.zip` – zum Entpacken, etwa auf einen USB-Stick; darin `Droid Studio.exe` doppelklicken.
+- `Droid-Studio.exe` – a single file. On first start it unpacks itself into a folder `Droid Studio` next to it and starts the app; later starts launch directly. After an update only program files are replaced; `Sicherungen` (backups) and `data` are kept.
+- `Droid-Studio-Windows-x64.zip` – for unpacking, e.g. onto a USB stick; double-click `Droid Studio.exe` inside it.
 
-Zu jeder Datei liegt eine `.sha256`-Prüfsumme bei. Die Exe ist nicht signiert; Windows SmartScreen kann beim ersten Start warnen („Weitere Informationen“ → „Trotzdem ausführen“). Der Starter wird beim Build mit dem C#-Compiler des .NET Framework aus `tools/launcher/DroidStudio.cs` übersetzt.
+Each file comes with a `.sha256` checksum. The exe is not code-signed; Windows SmartScreen may warn on first start („Weitere Informationen“ / *More info* → „Trotzdem ausführen“ / *Run anyway*). The starter is compiled during the build from `tools/launcher/DroidStudio.cs` with the C# compiler that ships with the .NET Framework.
 
-Ein anderer Port ist mit `app.py --port 8766` möglich. `--no-browser` verhindert das automatische Öffnen des Browsers. Der Server lauscht ausschließlich auf `127.0.0.1`.
+Use `app.py --port 8766` for a different port. `--no-browser` prevents the browser from opening automatically. The server listens on `127.0.0.1` only.
 
-## Liste sichern (forensische Dokumentation)
+## Backing up a list (forensic documentation)
 
-„Liste sichern“ öffnet jeden Eintrag einer Liste auf dem Gerät, blättert seinen Inhalt vollständig durch und speichert jede Seite als Screenshot, zum Beispiel alle Chats eines Messengers mit ihrem kompletten Verlauf.
+„Liste sichern“ opens every entry of a list on the device, pages through its content completely and saves every page as a screenshot – for example all chats of a messenger with their complete history.
 
-1. **Fall wählen:** Oben neben dem Ablaufnamen steht der aktive Fall. Dort einen Fall mit Aktenzeichen, Bearbeiter/in und Notiz anlegen oder wechseln. Listen und Sicherungen werden je Fall getrennt abgelegt.
-2. **Liste öffnen:** Auf dem Gerät die gewünschte Liste öffnen, etwa die Chatübersicht.
-3. **„Liste sichern“** in der Geräteansicht drücken, „Gerätebild laden“ und im Bild auf einen vollständigen Eintrag klicken. Rahmen und Vorschau zeigen, was als ein Eintrag gilt. Die Auswahl tippt nichts auf dem Gerät an.
-4. **Einstellungen:** Bezeichnung vergeben und wählen, wie jeder Eintrag durchgeblättert wird: „Vom Ende zum Anfang“ für Chatverläufe (neueste Nachricht zuerst) oder „Vom Anfang zum Ende“ für E-Mails und Profile. „Höchstens Seiten je Eintrag“ begrenzt sehr lange Inhalte; ein gekürzter Eintrag wird als „unvollständig“ markiert.
-5. **Sicherung starten.** Oben steht der Fortschritt. „Pause“ hält zwischen zwei Einträgen an, „Nächster Eintrag“ sichert genau einen weiteren, „Fortsetzen“ läuft weiter. „Stopp“ beendet die Sicherung; bereits Gesichertes bleibt mit Bericht erhalten.
+1. **Choose a case:** The active case („Fall“) is shown at the top next to the workflow name. Create or switch to a case with case number, examiner and note there. Lists and backups are stored separately per case.
+2. **Open the list:** Open the desired list on the device, for example the chat overview.
+3. Press **„Liste sichern“** in the device panel, „Gerätebild laden“ (*load device picture*) and move the mouse over a complete entry. The frame and the current entry appear immediately; a click fixes the selection. Detection prefers repeated entry containers in the Android XML hierarchy. Selecting does not tap anything on the device.
+4. **Settings:** Give the backup a name and choose how each entry is paged through: „Vom Ende zum Anfang“ (*from end to start*) for chat histories (newest message first) or „Vom Anfang zum Ende“ (*from start to end*) for e-mails and profiles. „Höchstens Seiten je Eintrag“ (*maximum pages per entry*) limits very long content; a truncated entry is marked „unvollständig“ (*incomplete*).
+5. **Start the backup.** Progress is shown at the top. „Pause“ stops between two entries, „Nächster Eintrag“ (*next entry*) backs up exactly one more, „Fortsetzen“ (*resume*) continues. „Stopp“ ends the backup; everything saved so far is kept together with a report.
 
-Die Einträge werden an ihrer Position auf dem Bildschirm angetippt, nicht per Text gesucht. Dadurch funktionieren auch Einträge aus mehreren Texten (Name, Nachricht, Uhrzeit), und gleichnamige Einträge bleiben getrennt. Gescrollt wird ohne Schwung: Der Finger hält vor dem Loslassen kurz still, damit Android nicht über Einträge hinwegscrollt. Jeder neue Bildschirmabschnitt wird mit dem vorherigen abgeglichen; lässt sich die Liste nicht lückenlos fortsetzen, steht eine Warnung im Bericht.
+Entries are tapped at their position on screen, not searched by text. This makes entries consisting of several texts (name, message, time) work, and entries with identical names stay separate. Scrolling is done without momentum: the finger rests briefly before lifting so that Android does not fling past entries. Every new screen section is aligned with the previous one; if the list cannot be continued without a gap, the report contains a warning.
 
-**Wichtig:** Das Gerät vorher in den Flugmodus versetzen. Sonst kann sich die Liste während der Sicherung ändern, und Messenger senden beim Öffnen eines Chats Lesebestätigungen.
+**Important:** Put the device into airplane mode first. Otherwise the list may change during the backup, and messengers send read receipts when a chat is opened.
 
-Jede Sicherung erhält einen eigenen Ordner unter `Sicherungen/<Fall>/<Zeitpunkt>_<Bezeichnung>/`:
+Each backup gets its own folder under `Sicherungen/<case>/<timestamp>_<name>/`:
 
-- `E0001_<Eintrag>/E0001_S0001.png` … die Screenshots je Eintrag und Seite
-- `bericht.html` mit Fall, Gerät (Hersteller, Modell, Android-Version, Seriennummer, Gerätezeit), Zeitpunkten, Status und Vorschaubild je Eintrag
-- `eintraege.csv` (Semikolon-getrennt, für Excel) und `sicherung.json` (maschinenlesbar)
-- `hashes.sha256` mit den SHA-256-Werten aller Dateien, prüfbar mit `sha256sum -c hashes.sha256`. Die Prüfsumme dieser Hashliste steht im Protokoll und in der Ablage.
+- `E0001_<entry>/E0001_S0001.png` … the screenshots per entry and page, plus `E0001_S0001.txt` with the page's visible text
+- `bericht.html` (report) with case, device (manufacturer, model, Android version, serial number, device time), timestamps, status and the text of each page next to its screenshot
+- `eintraege.csv` (semicolon-separated, for Excel) and `sicherung.json` (machine-readable)
+- `hashes.sha256` with the SHA-256 values of all files, verifiable with `sha256sum -c hashes.sha256`. The checksum of this hash list is shown in the log and in the „Ablage“ (*archive*).
 
-Die **Ablage** zeigt alle Sicherungen und Listen des aktiven Falls mit Fortschritt, Status je Eintrag, Vorschaubildern und Links zu jeder Seite. Von dort lassen sich Bericht, CSV und Ordner öffnen, Listen umbenennen, als CSV exportieren oder als Schleife verwenden sowie Sicherungen und Listen löschen. „Nur Listentexte aufnehmen …“ nimmt wie bisher nur die Texte einer Liste auf, ohne Einträge zu öffnen.
+The **„Ablage“** shows all backups and lists of the active case with progress, status per entry, thumbnails, page text and links to every page. From there you can open the report, CSV and folder, rename lists, export them as CSV or use them as a loop, and delete backups and lists. „Nur Listentexte aufnehmen …“ (*capture list texts only*) records only the texts of a list without opening entries.
 
-Im Assistenten erzeugt „Als Baustein einfügen“ einen Baustein „Liste sichern“, der mit „Starten“ als Teil eines Ablaufs läuft. Dieser Baustein wird nicht als Python exportiert, weil Bericht und Hashwerte nur in Droid Studio entstehen.
+In the assistant, „Als Baustein einfügen“ (*insert as block*) creates a „Liste sichern“ block that runs as part of a workflow with „Starten“ (*start*). This block is not exported to Python because the report and hashes are only produced in Droid Studio.
 
-Ohne Handy lässt sich alles mit dem Demo-Gerät ausprobieren: Im Assistenten „Demo-Chats auf dem Demo-Gerät öffnen“ wählen. Die Demo-Liste enthält absichtlich zwei identische Chats und ungelesene Nachrichten.
+Without a phone everything can be tried with the demo device: choose „Demo-Chats auf dem Demo-Gerät öffnen“ (*open demo chats on the demo device*) in the assistant. The demo list deliberately contains two identical chats and unread messages.
 
-## Ohne Programmieren zum ersten Ablauf
+## Backup reports
 
-1. **Demo ausprobieren:** Der voreingestellte Ablauf öffnet die Einstellungen, wartet, tippt auf „Anzeige“ und speichert einen Screenshot. „Starten“ führt ihn aus. Die Demo steuert kein echtes Telefon.
-2. **Bausteine hinzufügen:** Links einen Baustein anklicken, um ihn am Ende anzufügen. Oder auf die Arbeitsfläche ziehen und an einen anderen Baustein andocken. Nur die mit „Wenn gestartet“ verbundenen Bausteine gehören zum Ablauf; lose Blöcke müssen vor dem Start verbunden oder entfernt werden.
-3. **Werte ändern:** Direkt auf Felder und Auswahllisten in den Blöcken klicken. Weitere Blöcke lassen sich in Wiederholungen und in die beiden Zweige einer Bedingung einsetzen.
-4. **Element aufnehmen:** „Element auswählen“ drücken, dann das gewünschte Element auf dem Gerätebild anklicken. Die Vorschau pausiert für die Auswahl. Verwendet werden eindeutige Element-IDs, Beschreibungen oder Texte; ohne geeigneten Treffer wird eine relative Bildschirmposition eingefügt.
-5. **App übernehmen:** Eine gewünschte App auf dem Telefon öffnen und „Geöffnete App übernehmen“ drücken. Dadurch wird ihr Startbefehl eingefügt, ohne einen Paketnamen eingeben zu müssen. Im App-Baustein gibt es zusätzlich einige bekannte Apps zur Auswahl; sie müssen auf dem Telefon installiert sein.
-6. **Starten:** Der aktive Block wird hervorgehoben. Das Protokoll zeigt Schritte, Fehler und Links zu Screenshots. „Stopp“ unterbricht Wartezeiten sofort; eine bereits laufende Geräteanfrage muss zunächst zurückkehren.
-7. **Speichern:** Der aktuelle Entwurf wird im lokalen Browserspeicher gesichert. Im Menü „Projekt“ lädt „Als Datei speichern“ zusätzlich eine JSON-Projektdatei herunter; mit „Datei öffnen“ lässt sie sich wieder laden. „Neuer Ablauf“ oder „Beispiel laden“ ersetzt den Entwurf nach Rückfrage. Vorher wichtige Projekte als Datei speichern.
-8. **Python exportieren:** Unter „Python-Code“ wird der Ablauf als lesbarer Python-Code angezeigt und kann als `.py` heruntergeladen werden. Für einen Export aus der Demo ist später ein echtes Android-Gerät erforderlich.
+The report places the screen texts next to the corresponding screenshots. Original texts and technical details can be expanded. For recognised WhatsApp views, toolbars and certain media buttons that belong together are hidden in the reading view. Message texts are never rewritten; overlapping captures stay separate. Senders and missing texts are not guessed.
 
-Unter `examples/schleife-und-bedingung.json` liegt ein zusätzliches Projekt zum Öffnen, das verschachtelte Wiederholungen und eine Wenn-/Sonst-Bedingung zeigt.
+A separate reading copy can be created for an existing backup:
 
-## Einen Ablauf schrittweise prüfen
+```powershell
+.\.venv\Scripts\python.exe tools/report_reading_copy.py "Sicherungen/CaseFolder/BackupFolder"
+```
 
-**Schrittweise** hält vor dem ersten Baustein an. Der hervorgehobene Block ist der nächste Befehl; **Nächster Schritt** führt ihn aus und hält wieder vor dem folgenden Block an. Auch Schleifen und Bedingungen werden einzeln betreten: Ein Schritt auf einer Schleife führt noch nicht ihren gesamten Inhalt aus. Über der Arbeitsfläche stehen der nächste Befehl und innerhalb einer Listenschleife der aktuelle Listenwert. Wartezeiten und Scroll-Suchen werden als jeweils ein Befehl vollständig ausgeführt.
+It first verifies the original hash list and then writes `bericht-lesefassung.html`. The original report, backup data and hash list are not changed. The additional reading copy is not part of the original hash list and appears in the „Ablage“ next to the original report.
 
-**Fortsetzen** führt den Rest automatisch aus. **Pause** hält einen laufenden Ablauf vor dem nächsten Baustein an, sobald der aktuelle Befehl abgeschlossen ist. **Stopp** beendet auch einen angehaltenen Ablauf. Während eines angehaltenen Laufs bleiben Bearbeitung, direkte Geräteaktionen und Gerätewechsel gesperrt. Nach einer Änderung muss der Ablauf neu gestartet werden.
+## Your first workflow without programming
 
-Die Demo zeigt für „Anzeige“ die Einträge Helligkeit, Dunkles Design und Bildschirm-Timeout. Antippen öffnet eine eigene simulierte Detailansicht; **Zurück** kehrt zur tatsächlichen vorherigen Seite zurück. Für eine gespeicherte Liste dieser drei Einträge muss vor dem Start die Seite **Anzeige** geöffnet sein, zum Beispiel mit `App Einstellungen öffnen → Element Anzeige antippen → Für jeden Eintrag …`. Die Liste selbst navigiert nicht zu ihrer Ursprungsseite.
+1. **Try the demo:** The default workflow opens Settings, waits, taps „Anzeige“ (*Display*) and saves a screenshot. „Starten“ runs it. The demo does not control a real phone.
+2. **Add blocks:** Click a block on the left to append it at the end, or drag it onto the workspace and dock it to another block. Only blocks connected to „Wenn gestartet“ (*when started*) belong to the workflow; loose blocks must be connected or removed before starting.
+3. **Change values:** Click directly on fields and drop-downs in the blocks. More blocks can be placed inside loops and in both branches of a condition.
+4. **Pick an element:** Press „Element auswählen“ (*select element*) and click the desired element on the device picture. The preview pauses while selecting. Unique element IDs, descriptions or texts are used; without a suitable match a relative screen position is inserted.
+5. **Take over an app:** Open the desired app on the phone and press „Geöffnete App übernehmen“ (*use opened app*). This inserts its launch command without typing a package name. The app block also offers some well-known apps; they must be installed on the phone.
+6. **Start:** The active block is highlighted. The log shows steps, errors and links to screenshots. „Stopp“ interrupts waits immediately; a device request already in progress has to return first.
+7. **Save:** The current draft is stored in the browser's local storage. In the „Projekt“ menu, „Als Datei speichern“ (*save as file*) additionally downloads a JSON project file, which „Datei öffnen“ (*open file*) loads again. „Neuer Ablauf“ (*new workflow*) or „Beispiel laden“ (*load example*) replaces the draft after confirmation. Save important projects as files first.
+8. **Export Python:** „Python-Code“ shows the workflow as readable Python code that can be downloaded as `.py`. Exporting from the demo requires a real Android device later.
 
-## Variablen und einsetzbare Werte
+`examples/schleife-und-bedingung.json` is an additional project showing nested loops and an if/else condition.
 
-Unter **Variablen** findest du **Variable setzen**, **Variable ändern**, **Variablenwert**, **Textwert**, **Zahlenwert** und **Aktueller Listeneintrag**. „Variable setzen“ speichert einen Text oder eine Zahl unter einem frei gewählten Namen. „Variable ändern“ addiert einen Zahlenwert; negative Werte ziehen etwas ab. Setze die Variable vorher, zum Beispiel `Zähler = 0`. Namen müssen übereinstimmen; Groß- und Kleinschreibung werden unterschieden.
+## Checking a workflow step by step
 
-Stecke den Baustein **Variablenwert** in einen passenden Werteingang. Texteingabe, Elementsuche, Wenn-Element-da-ist, Scroll-Suche und Listenfilter nehmen Text- oder Zahlenwerte an. Wartezeit, Zeitlimit und Wiederholungsanzahl benötigen Zahlen. Die zusätzlichen Eingänge heißen beispielsweise **Suchwert stattdessen** oder **Sekunden stattdessen**: Ein eingesetzter Wert ersetzt das entsprechende feste Feld. Ohne eingesetzten Wert gilt weiterhin das Feld. Vorhandene Projekte funktionieren dadurch unverändert. Wertbausteine lassen sich auf die Arbeitsfläche ziehen und andocken; ein Klick in der Palette setzt einen Wert in einen freien passenden Eingang des ausgewählten Bausteins, wenn möglich.
+„Schrittweise“ (*step by step*) stops before the first block. The highlighted block is the next command; „Nächster Schritt“ (*next step*) runs it and stops again before the following block. Loops and conditions are entered one by one as well: a step on a loop does not yet run its whole body. Above the workspace you see the next command and, inside a list loop, the current list value. Waits and scroll searches run completely as one command each.
 
-In einer Listenschleife kann **Aktueller Listeneintrag** auch einer Variablen zugewiesen werden. Ihr Wert bleibt danach für den restlichen Lauf verfügbar. Alle Variablen starten bei jedem neuen Lauf leer. **Variablen im aktuellen Lauf** zeigt die Werte auch im Schrittmodus und nach dem Abschluss an. Ein Zugriff vor dem Setzen, ein Text in einem Zahlenfeld oder ein Wert außerhalb der zulässigen Grenzen hält den Ablauf am betroffenen Baustein an. Zahlen werden in Textfeldern als Text verwendet; Text wie „3“ wird nicht automatisch in eine Zahl umgewandelt.
+„Fortsetzen“ (*resume*) runs the rest automatically. „Pause“ stops a running workflow before the next block once the current command has finished. „Stopp“ also ends a paused run. While a run is paused, editing, direct device actions and switching devices stay locked. After a change the workflow must be restarted.
 
-Unter **Variablen → Variablenbeispiel laden** gibt es einen Ablauf, der einen Text kopiert und einen Zähler dreimal erhöht, ohne das Gerät zu bedienen. Die Datei liegt unter `examples/variablen.json`. Variablen und verbundene Wertbausteine werden mit dem Projekt gespeichert und im Python-Export unterstützt. Erlaubt sind bis zu 2000 Zeichen bzw. Zahlen zwischen −10¹² und 10¹². Wartezeiten und Schleifen behalten ihre bisherigen Grenzen. Für die Vorabprüfung der maximalen Schrittzahl wird eine variable Wiederholung konservativ mit bis zu 100 Durchläufen angesetzt.
+For „Anzeige“ the demo shows the entries Brightness, Dark theme and Screen timeout. Tapping opens a simulated detail view; „Zurück“ (*back*) returns to the actual previous page. For a saved list of these three entries the „Anzeige“ page must be open before starting, for example with `open app Settings → tap element Anzeige → for each entry …`. The list itself does not navigate to its origin page.
 
-## Listen und Schleifen über Einträge
+## Variables and value blocks
 
-Die Kategorie **Listen** enthält Bausteine zum Erstellen, Aufnehmen und Verarbeiten von Listen:
+The **„Variablen“** (*variables*) category contains „Variable setzen“ (*set variable*), „Variable ändern“ (*change variable*), „Variablenwert“ (*variable value*), „Textwert“ (*text value*), „Zahlenwert“ (*number value*) and „Aktueller Listeneintrag“ (*current list entry*). „Variable setzen“ stores a text or a number under a freely chosen name. „Variable ändern“ adds a number; negative values subtract. Set the variable first, e.g. `Zähler = 0`. Names must match; upper and lower case are distinguished.
 
-- **Liste erstellen:** Name und Werte angeben, zum Beispiel `Werte` mit `Anzeige; Akku; Apps`. Der Stift im Block öffnet einen Editor mit einer Zeile pro Wert. Semikolons und Zeilenumbrüche trennen Einträge; leere Einträge entfallen, doppelte Werte bleiben erhalten. Semikolons innerhalb eines einzelnen Werts werden daher nicht unterstützt.
-- **Listentexte lesen:** Sammelt Texte aus der aktuellen Geräteansicht in einer benannten Liste. Filterbar nach „Text enthält“, gemeinsamer Element-ID oder Elementtyp, z. B. `android.widget.TextView`. Ein leerer „Text enthält“-Filter liest alle sichtbaren Textknoten. Es wird nicht automatisch gescrollt und es findet keine OCR statt.
-- **Für jeden Eintrag:** Führt die eingeschlossenen Befehle einmal pro Listenwert aus. Der Listenname muss mit dem Erstellen-/Lesen-Baustein übereinstimmen, der vorher ausgeführt wird, oder dem Namen einer gespeicherten Liste.
-- **Eintrag eingeben:** Gibt den aktuellen Listenwert in das fokussierte Textfeld ein.
-- **Eintrag antippen:** Sucht ein Element, dessen Text, ID oder Beschreibung dem aktuellen Listenwert entspricht, und tippt es an.
+Plug the „Variablenwert“ block into a matching value input. Text input, element search, if-element-exists, scroll search and list filter accept text or number values. Wait time, timeout and repeat count require numbers. The additional inputs are labelled, for example, „Suchwert stattdessen“ (*search value instead*) or „Sekunden stattdessen“ (*seconds instead*): a plugged-in value replaces the corresponding fixed field. Without a plugged-in value the field still applies, so existing projects keep working. Value blocks can be dragged onto the workspace and docked; a click in the palette inserts a value into a free matching input of the selected block if possible.
 
-Beispiel: `App Einstellungen öffnen → Liste Werte erstellen → Für jeden Eintrag in Werte → Eintrag antippen → Zurück`. Die letzten beiden Befehle werden in die Schleife gesteckt. Unter **Listen → Listenbeispiel laden** lässt sich dieser Ablauf im Demo-Modus ausprobieren. Zusätzliche Projektdateien: `examples/liste-durchlaufen.json` und `examples/bildschirmliste-auslesen.json`.
+Inside a list loop, „Aktueller Listeneintrag“ can also be assigned to a variable; its value then remains available for the rest of the run. All variables start empty on every new run. „Variablen im aktuellen Lauf“ (*variables in the current run*) shows the values in step mode and after completion. Accessing a variable before it is set, text in a number field, or a value outside the allowed limits stops the workflow at the affected block. Numbers in text fields are used as text; text such as „3“ is not converted into a number automatically.
 
-Eine Liste enthält maximal 500 Werte mit jeweils höchstens 2000 Zeichen. Gelesene Listen behalten die Reihenfolge der Android-UI-Hierarchie. Die Schleife arbeitet mit einer Kopie der Liste zu ihrem Beginn; Navigation und spätere Listenänderungen verändern diesen Durchlauf nicht. Eine leere Liste überspringt den Schleifeninhalt. Bei verschachtelten Schleifen bezeichnet „aktueller Eintrag“ den Wert der innersten Schleife; danach ist der äußere Wert wieder verfügbar. Listen werden je Fall lokal unter `data/cases/<Fall>/lists.json` gespeichert und stehen über mehrere Läufe und Neustarts hinweg zur Verfügung. Listen aus älteren Versionen (`data/lists.json`) übernimmt beim ersten Start der erste Fall „Allgemein“. Ein gleicher Listenname ersetzt die bisherige Liste. Der Python-Export übernimmt gespeicherte Listenwerte und unterstützt auch Aufnahme und Scroll-Suche. Die maximale Schrittzahl wird konservativ berechnet; bei Bildschirm-Listen werden dabei bis zu 500 Einträge angenommen.
+„Variablen → Variablenbeispiel laden“ (*load variables example*) provides a workflow that copies a text and increments a counter three times without operating the device. The file is `examples/variablen.json`. Variables and connected value blocks are saved with the project and supported by the Python export. Up to 2000 characters and numbers between −10¹² and 10¹² are allowed. Waits and loops keep their existing limits. For the up-front check of the maximum number of steps, a variable repeat is conservatively counted with up to 100 iterations.
 
-## Ganze Bildschirmlisten aufnehmen und durchsuchen
+## Lists and loops over entries
 
-Über der Handyansicht gibt es **↓ Bildschirmliste aufnehmen**. Öffne auf dem Handy die gewünschte Liste und vergib einen Namen. Mit **Listenelement auswählen** lädst du ein Gerätebild in den Aufnahmedialog. Klicke dort auf einen vollständigen Eintrag. Die Auswahl bedient das Handy nicht. Ein Rahmen zeigt den gewählten Bereich; rechts siehst du die passenden Einträge als Vorschau. Über **Welcher Bereich ist ein vollständiger Eintrag?** kannst du zwischen einer Textzeile und einem größeren, umschließenden Element wechseln. Wähle beispielsweise die ganze Mail-Karte statt nur den Betreff. Erst nach der Auswahl lässt sich die Aufnahme starten.
+The **„Listen“** (*lists*) category contains blocks for creating, capturing and processing lists:
 
-Das Muster verwendet Elementtyp, Element-ID und die Position in der UI-Hierarchie, nicht den Text oder die Bildschirmkoordinaten des Beispiels. Es wird im ausgewählten Listenbereich nach gleich aufgebauten Elementen gesucht. Hat eine Karte bereits einen eigenen zusammenfassenden Text oder eine Beschreibung, wird dieser einmal übernommen; andernfalls werden ihre untergeordneten Texte zu einem mehrzeiligen Eintrag zusammengefasst. Diese Texte erscheinen nicht zusätzlich als einzelne Listeneinträge. Prüfe die Vorschau, insbesondere bei unterschiedlichen Kartenlayouts innerhalb derselben Liste. Nach Änderungen der App-Oberfläche kann eine erneute Auswahl erforderlich sein.
+- **„Liste erstellen“** (*create list*): give a name and values, e.g. `Werte` with `Anzeige; Akku; Apps`. The pencil in the block opens an editor with one line per value. Semicolons and line breaks separate entries; empty entries are dropped, duplicate values are kept. Semicolons within a single value are therefore not supported.
+- **„Listentexte lesen“** (*read list texts*): collects texts from the current device view into a named list. Filterable by „Text enthält“ (*text contains*), common element ID or element type, e.g. `android.widget.TextView`. An empty „Text enthält“ filter reads all visible text nodes. There is no automatic scrolling and no OCR.
+- **„Für jeden Eintrag“** (*for each entry*): runs the enclosed commands once per list value. The list name must match the create/read block that runs before it, or the name of a saved list.
+- **„Eintrag eingeben“** (*type entry*): types the current list value into the focused text field.
+- **„Eintrag antippen“** (*tap entry*): looks for an element whose text, ID or description equals the current list value and taps it.
 
-Die Aufnahme scrollt zuerst ganz zum Anfang, dann abschnittsweise nach unten, bis sich die Ansicht bei zwei aufeinanderfolgenden Wischbewegungen nicht mehr verändert. **Stopp** bricht die Aufnahme ab. Erst eine vollständig beendete Aufnahme ersetzt eine vorhandene Liste; bei Abbruch oder Fehler bleibt diese erhalten. Ein fehlender oder nicht eindeutiger ausgewählter Listenbereich führt zu einem Fehler, statt automatisch eine andere Liste aufzunehmen.
+Example: `open app Settings → create list Werte → for each entry in Werte → tap entry → back`. The last two commands go into the loop. „Listen → Listenbeispiel laden“ (*load list example*) lets you try this in demo mode. Additional project files: `examples/liste-durchlaufen.json` and `examples/bildschirmliste-auslesen.json`.
 
-Auch im Baustein **Bildschirmliste aufnehmen** kannst du über das Auswahl-Symbol oder das Rechtsklick-Menü ein Listenelement festlegen. Das Muster bleibt beim Speichern/Laden des Projekts erhalten und wird in den Python-Export übernommen. Die Aufnahmeart **Einzelne Texte mit Filter** bietet weiterhin die bisherige Erfassung einzelner Textknoten. Zusammengefasste Einträge sind Listenwerte; zum späteren Antippen muss der Wert zu einem tatsächlichen Text bzw. einer Beschreibung auf dem Gerät passen.
+A list holds at most 500 values with up to 2000 characters each. Captured lists keep the order of the Android UI hierarchy. A loop works on a copy of the list taken when it starts; navigation and later list changes do not affect that run. An empty list skips the loop body. In nested loops, „current entry“ refers to the innermost loop; afterwards the outer value is available again. Lists are stored locally per case under `data/cases/<case>/lists.json` and remain available across runs and restarts. Lists from older versions (`data/lists.json`) are taken over by the first case „Allgemein“ (*general*) on first start. A list with the same name replaces the previous one. The Python export includes saved list values and also supports capture and scroll search. The maximum number of steps is calculated conservatively; screen lists are assumed to have up to 500 entries.
 
-**Listen ansehen** zeigt die gespeicherten Werte mit Anzahl. Mit **Als Schleife verwenden** wird ein passender „Für jeden Eintrag“-Baustein eingefügt. Derselbe Listenname kann auch direkt in einem Schleifenbaustein eingetragen werden. Der Baustein **Bildschirmliste aufnehmen** führt die Aufnahme als Teil eines Ablaufs aus.
+## Capturing and searching whole screen lists
 
-Bei der Aufnahme einzelner Texte wird der größte von Android gemeldete scrollbare Bereich verwendet, sonst der Bildschirm ohne Systemleisten. Sie liest zugängliche Textknoten (keine OCR); Titel und Untertitel können dabei getrennte Werte sein. Gleiche Werte werden bei beiden Aufnahmearten einmal gespeichert, damit überlappende Abschnitte keine Duplikate liefern. Identisch beschriftete unterschiedliche Einträge sind dadurch nicht unterscheidbar. Die Grenzen sind 500 unterschiedliche Einträge und jeweils 100 Wischbewegungen zum Anfang bzw. Ende; danach gibt es eine Fehlermeldung statt einer unvollständig gespeicherten Liste.
+„Bildschirmliste aufnehmen“ (*capture screen list*) is available above the phone view. Open the desired list on the phone and give it a name. „Listenelement auswählen“ (*select list element*) loads a device picture into the capture dialog. Move the mouse over a complete entry there: a frame immediately shows the detected area; on the right you see the current entry and the matching entries as a preview. A click fixes the selection. Selecting does not operate the phone. „Welcher Bereich ist ein vollständiger Eintrag?“ (*which area is a complete entry?*) lets you switch between a text line and a larger enclosing element – choose, for example, the whole mail card instead of just the subject. Capturing can only start after a selection.
 
-**Text durch Scrollen suchen** sucht einen festen Text, **Eintrag durch Scrollen suchen** den aktuellen Listenwert innerhalb einer Schleife. Beide scrollen bei jedem Aufruf zuerst nach oben und anschließend nach unten. Wählbar sind exakte Übereinstimmung und „enthalten ist“ (Groß-/Kleinschreibung wird berücksichtigt). Bei einem Treffer bleibt der Bildschirm dort stehen; zum Antippen anschließend „Element antippen“ bzw. „Eintrag antippen“ hinzufügen. Ohne Treffer am Ende wird der Ablauf mit einer Meldung angehalten.
+The pattern uses element type, element ID and the position in the UI hierarchy, not the text or the screen coordinates of the example. Equally structured elements are searched within the selected list area. If a card already has its own summarising text or description, it is taken once; otherwise its child texts are combined into one multi-line entry. These texts do not additionally appear as separate list entries. Check the preview, especially when one list contains different card layouts. After changes to an app's interface a new selection may be necessary.
 
-Beispiel: `Für jeden Eintrag in Bildschirmliste → Eintrag durch Scrollen suchen → Eintrag antippen → Zurück`. Die drei letzten Befehle gehören in den Schleifenrumpf. Das Zurück muss wieder zur ursprünglichen Liste führen.
+Capturing first scrolls to the very top, then down section by section until the view does not change for two consecutive swipes. Only complete entries are taken; fragments of entries cut off at the edge are ignored. „Stopp“ cancels the capture. Only a fully completed capture replaces an existing list; on cancellation or error it is kept. A missing or ambiguous selected list area causes an error instead of silently capturing a different list.
 
-## Echtes Android-Gerät verbinden
+In the „Bildschirmliste aufnehmen“ block you can also choose a list element via the selection icon or the context menu. The pattern is kept when saving/loading the project and included in the Python export. The capture mode „Einzelne Texte mit Filter“ (*single texts with filter*) still offers the previous capture of individual text nodes. Combined entries are list values; to tap them later, the value must match an actual text or description on the device.
 
-- In den Android-Entwickleroptionen **USB-Debugging** einschalten.
-- Per USB-Datenkabel verbinden und die Debugging-Anfrage auf dem Telefon bestätigen.
-- In der Geräteansicht auf den Gerätenamen klicken, gegebenenfalls „Erneut suchen“ wählen und das Gerät verbinden.
-- Bei `unauthorized` fehlt die Bestätigung auf dem Telefon; bei `offline` Kabel/Verbindung prüfen.
-- Beim ersten Verbinden kann uiautomator2 seinen Automatisierungsdienst auf dem Gerät bereitstellen.
+The „Ablage“ shows the saved values with their count. „Als Schleife verwenden“ (*use as loop*) inserts a matching „Für jeden Eintrag“ block. The same list name can also be entered directly in a loop block. The „Bildschirmliste aufnehmen“ block performs the capture as part of a workflow.
 
-ADB wird unter Windows durch die installierte `adbutils`-Abhängigkeit mitgeliefert. Je nach Gerät werden zusätzliche USB-Treiber benötigt. Die App verändert keine Treibereinstellungen.
+When capturing single texts, the largest scrollable area reported by Android is used, otherwise the screen without system bars. It reads accessible text nodes (no OCR); titles and subtitles may become separate values. Identical values are stored once in both capture modes so that overlapping sections do not produce duplicates; differently located entries with identical labels can therefore not be distinguished. The limits are 500 distinct entries and 100 swipes each towards the start and the end; beyond that an error is shown instead of saving an incomplete list.
 
-Der Gerätename wird direkt über ADB gelesen. Die für den Verbindungsaufbau unnötige uiautomator2-Abfrage `device.info` wird vermieden, da sie auf neueren Android-Builds mit `ApplicationSharedMemory not initialized` scheitern kann. Bildschirmansicht und Elementerkennung verwenden weiterhin uiautomator2.
+„Text durch Scrollen suchen“ (*find text by scrolling*) searches for a fixed text, „Eintrag durch Scrollen suchen“ (*find entry by scrolling*) for the current list value inside a loop. Both first scroll up and then down on every call. Exact match and „enthalten ist“ (*contained*) are available (case-sensitive). On a match the screen stays there; add „Element antippen“ (*tap element*) or „Eintrag antippen“ afterwards to tap it. Without a match at the end the workflow stops with a message.
 
-Die Live-Ansicht verwendet Screenshots ungefähr einmal pro Sekunde; sie ist kein Videostream. Außerhalb des Auswahlmodus kannst du das Gerät durch Klicken direkt bedienen. Home, Zurück und Letzte Apps sind unter dem Gerätebild erreichbar. Drehung und Auflösung werden anhand der Bilder berücksichtigt.
+Example: `for each entry in Bildschirmliste → find entry by scrolling → tap entry → back`. The last three commands belong in the loop body. „Back“ must lead back to the original list.
 
-## Bausteine
+## Connecting a real Android device
 
-| Baustein | Funktion |
+- Enable **USB debugging** in the Android developer options.
+- Connect with a USB data cable and confirm the debugging request on the phone.
+- In the device panel click the device name, choose „Erneut suchen“ (*search again*) if necessary and connect the device.
+- `unauthorized` means the confirmation on the phone is missing; for `offline` check cable/connection.
+- On first connection uiautomator2 may install its automation service on the device.
+
+On Windows, ADB is provided by the installed `adbutils` dependency. Some devices need additional USB drivers. The app does not change any driver settings.
+
+The device name is read directly via ADB. The uiautomator2 query `device.info`, which is not needed to connect, is avoided because it can fail with `ApplicationSharedMemory not initialized` on newer Android builds. The app in the foreground is read from the Android window manager because uiautomator2 can report a background app on Android 17. Screen view and element detection still use uiautomator2.
+
+The live view uses screenshots about once per second; it is not a video stream. Outside selection mode you can operate the device by clicking directly. Home, Back and Recent apps are available below the device picture. Rotation and resolution are taken from the images.
+
+## Blocks
+
+| Block | Function |
 | --- | --- |
-| App öffnen | Gewählte Android-App starten |
-| Element antippen | Nach Text, eindeutiger ID oder Beschreibung suchen und tippen; maximal 10 Sekunden warten |
-| Position antippen | Relative Bildschirmposition in Prozent antippen |
-| Text eingeben | Text in das fokussierte Eingabefeld schreiben; vorhandenen Inhalt ersetzen |
-| Wischen | Nach oben, unten, links oder rechts wischen |
-| Warten | Eine festgelegte Zeit warten |
-| Auf Element warten | Bis zu einem einstellbaren Zeitlimit auf ein Element warten |
-| Wiederholen | Eingeschlossene Schritte 1–100 Mal wiederholen |
-| Wenn Element da ist | Je nach Sichtbarkeit den Dann- oder Sonst-Zweig ausführen |
-| Gerätetaste drücken | Home, Zurück, Letzte Apps, Enter oder Lautstärke |
-| Screenshot auf PC speichern | Gerätebild lokal auf dem PC unter `outputs/` speichern, mit vollständigem Speicherort und Bildlink im Protokoll |
+| App öffnen (*open app*) | Start the selected Android app |
+| Element antippen (*tap element*) | Find by text, unique ID or description and tap; waits up to 10 seconds |
+| Position antippen (*tap position*) | Tap a relative screen position in percent |
+| Text eingeben (*type text*) | Write text into the focused input field, replacing existing content |
+| Wischen (*swipe*) | Swipe up, down, left or right |
+| Warten (*wait*) | Wait for a fixed time |
+| Auf Element warten (*wait for element*) | Wait for an element up to an adjustable timeout |
+| Wiederholen (*repeat*) | Repeat the enclosed steps 1–100 times |
+| Wenn Element da ist (*if element exists*) | Run the then or else branch depending on visibility |
+| Gerätetaste drücken (*press device key*) | Home, Back, Recent apps, Enter or volume |
+| Screenshot auf PC speichern (*save screenshot on PC*) | Save the device picture locally under `outputs/`, with the full path and an image link in the log |
+| Liste sichern (*back up list*) | Open every entry of the selected list, page through it and document it (see above) |
 
-Der Demo-Modus simuliert die Navigation in Einstellungen, Antippen, Texteingabe, Home und Zurück. Wischbewegungen und weitere Systemtasten verändern die Demo nicht. Screenshots der Demo sind SVG-Dateien; echte Gerätebilder sind PNG-Dateien. Android-Apps mit geschützten Bildschirmansichten oder ohne zugängliche UI-Elemente können die Ansicht bzw. Elementerkennung einschränken.
+The demo mode simulates navigation in Settings, taps, text input, Home and Back, and a scrollable demo chat list. Other system keys do not change the demo. Demo screenshots are SVG files; real device pictures are PNG files. Android apps with protected screens or without accessible UI elements can limit the view or element detection.
 
 ## uiautodev
 
-„In uiautodev untersuchen“ startet den offiziellen Inspektor als separaten lokalen Python-Prozess unter <http://127.0.0.1:20242>. Er arbeitet mit echten angeschlossenen Geräten, nicht mit der Studio-Demo. Falls der Browser das neue Fenster blockiert, steht ein anklickbarer Link bereit.
+„In uiautodev untersuchen“ (*inspect in uiautodev*) starts the official inspector as a separate local Python process at <http://127.0.0.1:20242>. It works with real connected devices, not with the studio demo. If the browser blocks the new window, a clickable link is provided.
 
-Der Inspektor wird mit `--offline` gestartet. Beim ersten Aufruf lädt uiautodev seine Oberfläche von seinem Anbieter und cached sie; dafür kann Internetzugang nötig sein. Droid Studios eigener Editor lädt seine Dateien immer lokal. Startprobleme stehen in `uiautodev.log`. Ein schon anderweitig belegter Port wird nicht übernommen oder beendet.
+The inspector is started with `--offline`. On first use uiautodev loads its interface from its provider and caches it; this may require internet access. Droid Studio's own editor always loads its files locally. Start-up problems are written to `uiautodev.log`. A port already used by something else is neither taken over nor terminated.
 
-## Entwicklung und Prüfungen
+## Development and tests
 
 ```powershell
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
@@ -174,33 +195,23 @@ node --check web/app.js
 node tests/test_block_values.cjs
 ```
 
-Die Tests prüfen verschachtelte Abläufe, Bedingungen, Abbruch, fehlende Elemente, Python-Export einschließlich Texteingaben mit Anführungszeichen, normalisierte Gerätekoordinaten, eindeutige Selektoren und lokale HTTP-Endpunkte. Für einen vollständigen Hardwaretest muss ein Android-Gerät autorisiert verbunden sein.
+The tests cover nested workflows, conditions, cancellation, missing elements, Python export including text input with quotes, normalised device coordinates, unique selectors, local HTTP endpoints, and the list backup (complete and gap-free traversal, identical entries, evidence folder, hashes, reports). A full hardware test requires an authorised Android device.
 
-Die Blöcke werden in eine begrenzte JSON-Befehlssprache übersetzt und auf dem Server validiert. Es wird kein frei eingegebener Python-Code ausgeführt. Abläufe sind auf 500 Befehlsblöcke, 12 Verschachtelungsebenen und maximal 10.000 ausgeführte Schritte begrenzt. Gerätewechsel und zusätzliche Läufe sind während eines Laufs gesperrt. Die lokale Schnittstelle prüft Host und Origin; Änderungen benötigen zusätzlich ein Sitzungstoken.
+Blocks are translated into a restricted JSON command language and validated on the server. No freely entered Python code is executed. Workflows are limited to 500 command blocks, 12 nesting levels and at most 10,000 executed steps. Switching devices and additional runs are locked during a run. The local interface checks Host and Origin; changes additionally require a session token. Page and server compare a version number so that an outdated running server is detected instead of failing silently.
 
-## Aufbau
+## Structure
 
-- `app.py`: Startpunkt
-- `automator/server.py`: lokaler HTTP-Server, Geräteverwaltung, Inspektorstart
-- `automator/devices.py`: Android- und Demo-Adapter
-- `automator/program.py`: Validierung und Python-Export
-- `automator/runner.py`: Ablaufsteuerung, Stopp, Protokoll
-- `automator/backup.py`: „Liste sichern“ – Einträge öffnen, durchblättern, Bildschirmabschnitte abgleichen
-- `automator/evidence.py`: Sicherungsordner mit Screenshots, SHA-256-Hashliste, CSV und HTML-Bericht
-- `automator/cases.py`, `automator/storage.py`: Fälle, Listen je Fall, Ablage
-- `web/`: deutsche Oberfläche und Blockly-Integration
-- `tests/`: automatisierte Tests ohne Hardware
+- `app.py`: entry point
+- `automator/server.py`: local HTTP server, device management, inspector start
+- `automator/devices.py`: Android and demo adapters
+- `automator/program.py`: validation and Python export
+- `automator/runner.py`: workflow control, stop, log
+- `automator/backup.py`: „Liste sichern“ – open entries, page through them, align screen sections
+- `automator/evidence.py`: backup folder with screenshots, page texts, SHA-256 hash list and CSV
+- `automator/report.py`, `automator/report_text.py`: HTML report and reading view
+- `automator/cases.py`, `automator/storage.py`: cases, lists per case, archive
+- `web/`: German user interface and Blockly integration
+- `tools/`: portable build, Windows starter, reading copy
+- `tests/`: automated tests without hardware
 
-Referenzen: [uiautomator2](https://github.com/openatx/uiautomator2), [uiautodev](https://github.com/codeskyblue/uiautodev), [Blockly-Serialisierung](https://docs.blockly.com/guides/configure/serialization/).
-
-## Sicherungsberichte
-
-Der Bericht stellt Bildschirmtexte neben die zugehörigen Screenshots. Originaltexte und technische Angaben bleiben aufklappbar. Bei erkannten WhatsApp-Ansichten werden Bedienleisten und bestimmte zusammengehörige Medien-Schaltflächen für die Lesefassung ausgeblendet. Nachrichtentexte werden nicht umgeschrieben; überlappende Aufnahmen bleiben getrennt. Absender und fehlende Texte werden nicht geraten.
-
-Für eine vorhandene Sicherung kann eine separate Lesefassung erzeugt werden:
-
-```powershell
-.\.venv\Scripts\python.exe tools/report_reading_copy.py "Sicherungen/Fallordner/Sicherungsordner"
-```
-
-Das prüft zunächst die ursprüngliche Hashliste und schreibt `bericht-lesefassung.html`. Originalbericht, Sicherungsdaten und Hashliste werden nicht verändert. Die zusätzliche Lesefassung ist nicht Teil der ursprünglichen Hashliste und erscheint in der Ablage neben dem Originalbericht.
+References: [uiautomator2](https://github.com/openatx/uiautomator2), [uiautodev](https://github.com/codeskyblue/uiautodev), [Blockly serialization](https://docs.blockly.com/guides/configure/serialization/).
