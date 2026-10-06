@@ -1,6 +1,6 @@
 # Droid Studio (ADBAutomator)
 
-**Deutsch** · [English](README.md)
+**Deutsch** · [English](README.md) · [![Tests](https://github.com/AndroidIosForensik/ADBAutomator/actions/workflows/tests.yml/badge.svg)](https://github.com/AndroidIosForensik/ADBAutomator/actions/workflows/tests.yml)
 
 Lokale Python-Anwendung für die forensische Sicherung von Android-Bildschirminhalten und für Android-Abläufe aus Scratch-ähnlichen Blockly-Bausteinen. „Liste sichern“ öffnet jeden Eintrag einer Liste (etwa alle Chats), blättert ihn vollständig durch und dokumentiert jede Seite mit Screenshot, Bericht und SHA-256-Hashwerten. Die Oberfläche läuft im Browser, die Geräteaktionen führt `uiautomator2` auf deinem Computer aus.
 

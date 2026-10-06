@@ -1,0 +1,42 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    # Windows like the users: the server relies on Windows socket behaviour.
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install dependencies
+        run: |
+          python -m pip install -r requirements.txt
+          npm ci --ignore-scripts
+
+      - name: Python tests
+        run: python -m unittest discover -s tests -v
+
+      - name: JavaScript checks
+        run: |
+          node --check web/app.js
+          node tests/test_block_values.cjs
+          node tests/test_list_picker.cjs
